@@ -1,0 +1,46 @@
+import { useCallback } from 'react';
+import { Reactive } from '@livefree/reactive';
+import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
+import { {{ _ModuleName}}List } from 'features/{{ _moduleName }}/components';
+
+export const {{ _ModuleName }}ListController = Reactive(
+  ({ data, services, monitors, db, onSelect }) => {
+    const { {{ _moduleName }} } = data;
+
+    const handleExecute = useCallback((action, metadata) => {
+      action(metadata);
+    }, []);
+
+    return (
+      <RequestBroker
+        actionKey="query{{  _ModuleName }}"
+        action={services.{{ _moduleName }}.query{{ _ModuleName }}}
+        defaultSorting={ { propertyName: 'id', sortType: false } }
+        defaultPaging={ { skip: 0, take: 50, page: 1, totalCount: 0 } }
+        isExecuting={monitors.query{{ _ModuleName }}.executing}
+        skipInitial={() => db.{{ _moduleName }}.toCollection().count()}
+        onExecute={handleExecute}
+      >
+        <{{ _ModuleName }}List
+          {{ _moduleName }}={ {{  _moduleName }} }
+          isExecuting={monitors.query{{ _ModuleName }}.executing}
+          onSelect={item => onSelect && onSelect(item)}
+        />
+      </RequestBroker>
+    );
+  },
+  {
+    name: '{{ _ModuleName }}ListController',
+    queries: (_, services) => [
+      {
+        name: '{{ _moduleName }}',
+        execute: db =>
+          queryDexieWithMetadata(db, services.{{ _moduleName }}.query{{ _ModuleName }}.action, () => db.{{ _moduleName }}, {
+            sorting: true,
+          }),
+        deps: [],
+      },
+    ],
+    monitors: services => [services.{{ _moduleName }}.query{{ _ModuleName }}],
+  },
+);

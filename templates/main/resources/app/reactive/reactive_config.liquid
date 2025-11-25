@@ -1,0 +1,38 @@
+import { DexieDbProvider } from '@livefree/reactive';
+{{ app-inject-token }} - Service Files -
+
+export const ReactiveConfig = {
+  services: [
+    {{ app-inject-token }} - Service DI Container -
+  ],
+  reactors: [
+    {{ app-inject-token }} - Reactors DI Container -
+  ],
+  db: {
+    name: 'livefree.accounts.db',
+    provider: DexieDbProvider,
+    init: db => {
+      // LFT-TOKEN - DB Version -
+      db.version(buildVersion('1.0.0')).stores(buildStore(_store));
+    },
+  },
+};
+
+const _store = {
+  {{ app-inject-token }} - Tables -
+};
+
+const buildVersion = version => {
+    const parts = version.split('.');
+    // Pad each part to ensure proper formatting: xx.yy.zzz
+    const major = parts[0].padStart(2, '0');
+    const minor = parts[1].padStart(2, '0');
+    const patch = parts[2].padStart(3, '0');
+    return parseInt(`${major}${minor}${patch}`, 10);
+};
+
+const buildStore = store =>
+  Object.entries(store).reduce((result, [key, value]) => {
+    result[key] = value.join(',');
+    return result;
+  }, {});

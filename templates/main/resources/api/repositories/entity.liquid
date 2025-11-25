@@ -1,0 +1,24 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace {{ BaseNamespaceName }}.Repositories.SqlServer.Entities;
+
+// TODO: {{ _ModelName }} - Review Entity Configuration
+[Table("{{ modelDefinition.entity.table }}", Schema = "{{ modelDefinition.entity.schema }}")]
+public class {{ _ModelName }}Entity
+{
+    [Key, Primary]
+    {%- if modelDefinition.entity.primary %}
+    [Column("{{ modelDefinition.entity.primary.dbName }}"), TypeMap({{ modelDefinition.entity.primary.dbType }})]
+    {%- endif %}
+    public {{ keyType }} Id { get; set; }
+
+{%- for property in modelDefinition.properties %}
+    {%- if property.dbName and property.dbType %}
+    [Column("{{ property.dbName }}"), TypeMap({{ property.dbType }})]
+    {%- endif %}
+    public {{ property.type }} {{ property.name }} { get; set; }
+{%- endfor %}
+}

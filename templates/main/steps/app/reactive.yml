@@ -1,0 +1,80 @@
+name: ApiClient
+isEntryPoint: true
+commandName: api-client
+description: Generate frontend API client service
+group: frontend
+requiresContext: frontend
+action: group
+
+# Variables configuration
+vars:
+  imports: all
+  locals:
+    - name: isMql
+      description: Setup MQL integration for this service
+      type: bool
+      default: true
+      forcePrompt: true
+
+steps:
+  - name: Create Reactive Service
+    action: create
+    def: app-src
+    source: resources/app/reactive/service.liquid
+    output: core/services/{{ _ModuleName }}Service.js
+
+  - name: ReactiveConfig import Service
+    action: ast-insert
+    def: app-src
+    output: core/services/ReactiveConfig.js
+    parameters:
+      importStatement: "import * as {{ _ModuleName }} from './{{ _ModuleName }}Service'"
+      idempotent: true
+    createFile: true
+    createFileSource: resources/app/reactive/reactive_config.liquid
+
+  - name: ReactiveConfig register Service in DI Container
+    action: ast-insert
+    def: app-src
+    output: core/services/ReactiveConfig.js
+    targetFunction: "configureServices"
+    insertionType: "InMethod"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "{{ _ModuleName }}.{{ _ModuleName }}Service"
+    template: "{{ _ModuleName }}.{{ _ModuleName }}Service,"
+    createFile: true
+    createFileSource: resources/app/reactive/reactive_config.liquid
+
+  - name: ReactiveConfig register Reactors in DI Container
+    action: ast-insert
+    def: app-src
+    output: core/services/ReactiveConfig.js
+    targetFunction: "configureReactors"
+    insertionType: "InMethod"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "{{ _ModuleName }}.{{ _ModuleName }}Reactor"
+    template: "{{ _ModuleName }}.{{ _ModuleName }}Reactor,"
+    createFile: true
+    createFileSource: resources/app/reactive/reactive_config.liquid
+
+  - name: ReactiveConfig register Tables in Dexie
+    action: insert-before
+    token: "{{ app-inject-token }} - Tables -"
+    def: app-src
+    template: "{{ _moduleName }}: ['&id'],"
+    output: core/services/ReactiveConfig.js
+    createFile: true
+    createFileSource: resources/app/reactive/reactive_config.liquid
+
+  - name: ReactiveConfig update DB version
+    action: replace-next-line
+    token: "// LFT-TOKEN - DB Version -"
+    def: app-src
+    source: resources/app/reactive/reactive_config_db_version.liquid
+    output: core/services/ReactiveConfig.js
+    createFile: true
+    createFileSource: resources/app/reactive/reactive_config.liquid

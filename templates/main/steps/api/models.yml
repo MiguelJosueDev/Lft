@@ -1,0 +1,19 @@
+name: Model
+isEntryPoint: true
+commandName: model
+description: Generate entity model class
+group: backend
+requiresContext: backend
+action: group
+
+# Variables configuration
+vars:
+  imports: all
+  locals: []
+
+steps:
+  - name: Create Model
+    action: create
+    def: api-models
+    source: resources/api/models/model.liquid
+    output: "{{ _ModelName }}Model.cs"

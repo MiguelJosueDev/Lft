@@ -1,0 +1,14 @@
+name: Main
+entryPoints:
+  - name: Crud
+    commandName: crud
+    action: group
+    steps:
+      - name: CreateRepository
+        action: create
+        source: resources/repository.liquid
+        output: Repositories/{{ _EntityPascal }}Repository.cs
+      - name: AddMethod
+        action: create
+        source: resources/method.liquid
+        output: Repositories/{{ _EntityPascal }}Repository.cs

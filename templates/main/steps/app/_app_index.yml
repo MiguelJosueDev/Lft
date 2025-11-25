@@ -1,0 +1,19 @@
+name: App
+isEntryPoint: true
+commandName: ui
+aliases: [frontend, app]
+description: Generate complete frontend application layer
+group: composite
+requiresContext: frontend
+action: group
+dependencies: [api-client, router, feature]
+
+# Variables configuration (import all since this is a composite group)
+vars:
+  imports: all
+  locals: []
+
+steps:
+  - !include reactive.yml
+  - !include routing.yml
+  - !include feature.yml

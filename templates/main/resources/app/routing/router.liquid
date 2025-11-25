@@ -1,0 +1,16 @@
+import { createBrowserRouter, createRoutesFromElements, Route } from 'react-router-dom';
+import { RoutingErrorHandler } from '@livefree/react-ui';
+import { BaseLayout } from './BaseLayout';
+{{ app-inject-token }} - Router Imports -
+
+export const Router = baseName =>
+  createBrowserRouter(
+    createRoutesFromElements(
+      <Route element={<BaseLayout />} ErrorBoundary={RoutingErrorHandler}>
+        {{ app-inject-token }} - Routers -
+      </Route>,
+    ),
+    {
+      basename: baseName.startsWith('/') ? baseName : `/${baseName}`,
+    },
+  );

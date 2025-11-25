@@ -1,0 +1,45 @@
+import { useCallback } from 'react';
+import { TableRow, TableColumn, TableCell } from '@heroui/react';;
+import { RequestBrokerDataTable } from '@livefree/react-ui';
+
+const columns = [
+  { propertyName: 'id', name: 'Id', isSortable: true },
+{%- for property in modelDefinition.properties %}
+  { propertyName: '{{ property.name | camel_case }}', name: '{{ property.name }}', isSortable: true },
+{%- endfor %}
+];
+
+export const {{ _ModuleName }}List = ({ {{ _moduleName }} = [], filters, onSelect }) => {
+  const renderCell = useCallback((row, columnKey) => {
+    const cellValue = row[columnKey];
+
+    switch (columnKey) {
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  return (
+    <RequestBrokerDataTable
+      columns={columns}
+      items={ {{ _moduleName }} }
+      filters={filters}
+      renderColumn={column => (
+        <TableColumn
+          key={column.propertyName}
+          allowsSorting={column?.isSortable}
+        >
+          {column.name}
+        </TableColumn>
+      )}
+      renderRow={row => (
+        <TableRow key={row.id} onClick={() => onSelect(row)}>
+          {columnKey => <TableCell key={columnKey}>{renderCell(row, columnKey)}</TableCell>}
+        </TableRow>
+      )}
+      withPagination
+      withSorting
+      withColumnSelection
+    />
+  );
+};

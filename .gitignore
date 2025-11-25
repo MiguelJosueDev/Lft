@@ -1,0 +1,106 @@
+############################
+# SISTEMA OPERATIVO
+############################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux / otros
+*~
+
+############################
+# .NET / C#
+############################
+bin/
+obj/
+artifacts/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Resharper / Rider / VS
+_ReSharper*/
+*/_ReSharper*/
+*.DotSettings.user
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
+*.ncrunch*
+*.vsp
+*.vspx
+*.psess
+
+# Coverage
+*.coverage
+*.coveragejson
+coverage/
+.coverage/
+.opencover.xml
+
+############################
+# EDITORES
+############################
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Otros
+*.swp
+*.swo
+
+############################
+# NODE / FRONTEND (por si metes tooling JS)
+############################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.tmp/
+
+############################
+# PAQUETES / ARTEFACTOS
+############################
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/packages/
+
+# Otros binarios
+*.exe
+*.dll
+*.pdb
+*.db
+*.sqlite
+
+############################
+# CONFIG LOCAL / SECRETOS
+############################
+*.local.json
+*.secret.json
+*.env
+*.env.*
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+############################
+# GEMINI / ANTIGRAVITY (por si acaso)
+############################
+# Si algún día ves carpetas temporales dentro de este proyecto,
+# agrégalas aquí explícitamente. Ejemplo:
+# .antigravity/

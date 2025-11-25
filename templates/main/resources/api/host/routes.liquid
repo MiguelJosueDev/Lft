@@ -1,0 +1,62 @@
+using LiveFree.Core.AspNetCore.Extensions;
+{%- if RoutePattern != "MapGroup" %}
+using LiveFree.Core.AspNetCore.Routing;
+{%- endif %}
+{%- if isMql %}
+using LiveFree.Mql.Models;
+{%- endif %}
+using {{ BaseNamespaceName }}.Api.Endpoints;
+using {{ BaseNamespaceName }}.Models;
+using Microsoft.AspNetCore.Builder;
+{%- if RoutePattern == "MapGroup" %}
+using Microsoft.AspNetCore.Http;
+{%- endif %}
+using Microsoft.AspNetCore.Mvc;
+
+namespace {{ BaseNamespaceName }}.Api.Routes;
+
+public static class {{ _ModuleName }}Routes
+{
+    public static void Map{{ _ModuleName }}Routes(
+        this WebApplication app,
+        string basePrefix,
+        string prefix = "{{ _routeModuleName }}")
+    {
+{%- if RoutePattern == "MapGroup" %}
+        var group = app.MapGroup($"{basePrefix}/{prefix}".ToLower());
+        group.WithTags("{{ _ModuleName }}");
+
+{%- if isMql %}
+    
+        group.MapPost("/query", (
+                    [FromQuery] string query,
+                    [FromServices] I{{ _ModuleName }}Endpoint endpoint)
+                => endpoint.QueryAsync(query))
+            .WithName("Query{{ _ModuleName }}")
+            // .WithAuthorizationPolicy("", "", PolicyContext.All)
+            .Produces<MqlQueryResult<{{ _ModelName }}Model>>()
+            .WithDefaultProducers();
+{%- endif %}
+{%- else %}
+        var group = app
+            .MapModelRoutes<{{ _ModelName }}Model, I{{ _ModuleName }}Endpoint, {{ keyType }}>(basePrefix, prefix, "{{ _ModuleName }}")
+            .AddGet()
+            .AddCreate()
+            .AddUpdate()
+            .AddDelete()
+            .Builder
+            .RequireAuthorization();
+
+{%- if isMql %}
+        group.MapDefaultPost<MqlQueryResult<{{ _ModelName }}Model>>(
+            pattern: "/query",
+            routeName: "Query{{ _ModuleName }}",
+            handler: (
+                    [FromBody] string query,
+                    [FromServices] I{{ _ModuleName }}Endpoint endpoint)
+                => endpoint.QueryAsync(query));
+{%- endif %}
+{%- endif %}
+
+    }
+}

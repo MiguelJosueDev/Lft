@@ -1,0 +1,11 @@
+namespace {{ BaseNamespaceName }}.Models;
+
+public class {{ _ModelName }}Model
+{
+    public {{ keyType }} Id { get; set; }
+
+{%- for property in modelDefinition.properties %}
+    public {{ property.type }} {{ property.name }} { get; set; }
+{%- endfor %}
+
+}

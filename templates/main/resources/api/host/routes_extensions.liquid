@@ -1,0 +1,16 @@
+using {{ BaseNamespaceName }}.Api.Routes;
+using Microsoft.AspNetCore.Builder;
+
+namespace {{ BaseNamespaceName }}.Api.Extensions;
+
+public static class {{ _MainModuleName }}Routes{{ RoutesExtensionSuffix }}
+{
+    public static WebApplication Add{{ _MainModuleName }}Routes(
+        this WebApplication app,
+        string basePrefix = "{{ _MainModuleName | kebab_case }}")
+    {
+        {{ api-inject-token }} - Routes -
+
+        return app;
+    }
+}

@@ -1,0 +1,145 @@
+# Global Variables Definition
+# This file centralizes all shared variables across templates
+# Variables are categorized as:
+# - forcePrompt: Always prompt user (required)
+# - computed: Automatically calculated via Liquid expressions
+# - normal: Optional with defaults
+
+globalVars:
+  # Core Model Variables (forcePrompt)
+  - name: modelName
+    description: The name of the model (e.g., Product, Order)
+    forcePrompt: true
+    type: string
+
+  - name: keyType
+    description: The data type of the model's key
+    forcePrompt: true
+    type: string
+    default: "long"
+
+  - name: modelDefinition
+    description: The definition of the model's properties in JSON format
+    type: json
+    default: "{}"
+    forcePrompt: true
+
+  # Computed Variables (PascalCase transformations)
+  - name: _ModelName
+    computed: "{{ modelName | pascal_case }}"
+
+  - name: _modelName
+    computed: "{{ modelName | camel_case }}"
+
+  - name: _ModuleName
+    computed: "{{ modelName | pluralize | pascal_case }}"
+
+  - name: _moduleName
+    computed: "{{ modelName | pluralize | camel_case }}"
+
+  - name: _routeModuleName
+    computed: "{{ modelName | pluralize | kebab_case }}"
+
+  - name: _MainModuleName
+    computed: "{{ MainModuleName | pascal_case }}"
+
+  - name: _mainModuleName
+    computed: "{{ MainModuleName | camel_case }}"
+
+  - name: _routeMainModuleName
+    computed: "{{ MainModuleName | kebab_case }}"
+
+  - name: apiFeature
+    description: Generate API feature endpoints?
+    type: bool
+    default: false
+    forcePrompt: false
+
+  - name: createRepository
+    description: Create repository pattern implementation?
+    type: bool
+    default: true
+    forcePrompt: false
+
+  - name: createService
+    description: Create service layer?
+    type: bool
+    default: true
+    forcePrompt: false
+
+  - name: createController
+    description: Create API controller?
+    type: bool
+    default: true
+    forcePrompt: false
+
+  # Azure Function Variables
+  - name: queueName
+    description: Queue name for Azure Function trigger
+    type: string
+    default: ""
+    forcePrompt: false
+
+  - name: functionName
+    description: Name of the Azure Function
+    type: string
+    default: ""
+    forcePrompt: false
+
+  # Cosmos DB Variables
+  - name: cosmosContainer
+    description: Cosmos DB container name
+    type: string
+    default: ""
+    forcePrompt: false
+
+  - name: cosmosPartitionKey
+    description: Cosmos DB partition key
+    type: string
+    default: "/id"
+    forcePrompt: false
+
+  # Profile Variables (from lft.config.json)
+  - name: MainModuleName
+    description: The name of the main module (Accounts, Transactions, etc.)
+    type: string
+
+  - name: BaseNamespaceName
+    description: The base namespace for the project
+    type: string
+
+  - name: IConnectionFactoryName
+    description: The name of the IConnectionFactory interface
+    type: string
+    default: "IConnectionFactory"
+
+  - name: IUnitOfWorkName
+    description: The name of the IUnitOfWork interface
+    type: string
+    default: "IUnitOfWork"
+
+  - name: api-inject-token
+    description: Token string for API file injections
+    type: string
+    default: "// inject:api"
+
+  - name: app-inject-token
+    description: Token string for app file injections
+    type: string
+    default: "// inject:app"
+
+  - name: RoutePattern
+    description: Routing pattern (MapModelRoutes or MapGroup)
+    type: string
+    default: "MapModelRoutes"
+
+  - name: RoutesExtensionSuffix
+    description: Suffix for RoutesExtension class name
+    type: string
+    default: "Extensions"
+
+  # Entry Point (set dynamically by CLI)
+  - name: entryPoint
+    description: Entry point for granular generation
+    type: string
+    default: "crud"

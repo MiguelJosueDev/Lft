@@ -1,0 +1,44 @@
+import { useState } from 'react';
+import { Button } from '@heroui/react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { SaveButton, withModalController } from '@livefree/react-ui';
+import { {{ _ModelName }}Form } from 'features/{{ _moduleName }}/components';
+
+const {{ _ModelName }}CreateController = Reactive(
+  ({ services, monitors, onSuccess, onClose }) => {
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.{{ _moduleName }}, 'create{{ _ModelName }}', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <{{ _ModelName }}Form onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <Button size="sm" onPress={() => onClose && onClose()} color="default" variant="light">
+            Cancel
+          </Button>
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.{{ _moduleName }}.create{{ _ModelName }}(form.data)
+            }
+            isLoading={monitors.create{{ _ModelName }}.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: '{{ _ModelName }}CreateController',
+    monitors: services => [services.{{ _moduleName }}.create{{ _ModelName }}],
+  },
+);
+
+{{ _ModelName }}CreateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <{{ _ModelName }}CreateController onSuccess={onSuccess} {...props} />
+));
+
+export { {{ _ModelName }}CreateController };

@@ -1,0 +1,21 @@
+using LiveFree.Core.Service;
+{%- if isMql %}
+using LiveFree.Mql.Models;
+{%- endif %}
+using {{ BaseNamespaceName }}.Interfaces;
+using {{ BaseNamespaceName }}.Models;
+using {{ BaseNamespaceName }}.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace {{ BaseNamespaceName }}.Services;
+
+public class {{ _ModuleName }}Service(
+    I{{ _ModuleName }}Repository repository,
+    ILogger<{{ _ModelName }}Model> logger)
+    : BaseModelService<I{{ _ModuleName }}Repository, {{ _ModelName }}Model, {{ keyType }}>(repository, logger), I{{ _ModuleName }}Service
+{
+{%- if isMql %}
+    public Task<MqlQueryResult<{{ _ModelName }}Model>> QueryMqlAsync(string query)
+        => Repository.QueryMqlAsync(query);
+{%- endif %}
+}

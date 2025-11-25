@@ -1,0 +1,46 @@
+name: Service
+isEntryPoint: true
+commandName: service
+description: Generate service layer with business logic
+group: backend
+requiresContext: backend
+dependencies: [model, repository]
+action: group
+
+# Variables configuration
+vars:
+  imports: all
+  locals: 
+    - name: isMql
+      description: Setup MQL integration for this service
+      type: bool
+      default: true
+      forcePrompt: true
+
+steps:
+  - name: Create Service Interface
+    action: create
+    def: api-interfaces
+    source: resources/api/services/i_service.liquid
+    output: "I{{ _ModuleName }}Service.cs"
+
+  - name: Create Service
+    action: create
+    def: api-services
+    source: resources/api/services/service.liquid
+    output: "{{ _ModuleName }}Service.cs"
+
+  - name: Register Service in DI Container
+    action: ast-insert
+    def: api-services
+    output: Extensions/ServiceRegistrationExtensions.cs
+    targetMethod: "Add{{ _MainModuleName }}Services"
+    insertionType: "InMethod"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "AddScoped<I{{ _ModuleName }}Service"
+      format: true
+    template: "services.AddScoped<I{{ _ModuleName }}Service, {{ _ModuleName }}Service>();"
+    createFile: true
+    createFileSource: resources/api/services/service_extensions.liquid

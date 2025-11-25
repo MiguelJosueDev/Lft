@@ -1,0 +1,15 @@
+import { Route, Routes } from 'react-router-dom';
+import {
+  {{ _ModuleName }}ListView,
+  {{ _ModelName }}CreateView,
+  {{ _ModelName }}UpdateView } from 'features/{{ _moduleName }}/views';
+import { WithParams } from 'features/routing';
+
+export const {{ _ModuleName }}Router = () => (
+  <Routes>
+    <Route path="/" element={<{{ _ModuleName }}ListView />}>
+      <Route path="create" element={<{{ _ModelName }}CreateView />} />
+      <Route path=":{{ _modelName }}Id/update" element={<WithParams element={ {{ _ModelName }}UpdateView } />} />
+    </Route>
+  </Routes>
+);

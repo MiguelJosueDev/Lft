@@ -1,0 +1,8 @@
+{%- assign line_parts = __line.value | split: "'" -%}
+{%- assign version = line_parts[1] -%}
+{%- assign version_parts = version | split: '.' -%}
+{%- assign major = version_parts[0] -%}
+{%- assign minor = version_parts[1] -%}
+{%- assign patch = version_parts[2] | plus: 1 -%}
+{%- assign new_version = major | append: '.' | append: minor | append: '.' | append: patch -%}
+{{ line_parts[0] | lstrip }}"{{ new_version }}"{{ line_parts[2] }}

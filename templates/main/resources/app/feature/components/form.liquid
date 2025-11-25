@@ -1,0 +1,19 @@
+import { Uniformly } from '@livefree/uniformly';
+import { FieldStatus, TextField } from '@livefree/react-ui';
+
+export const {{ _ModelName }}Form = ({ {{ _modelName }} = {}, onChange }) => (
+  <Uniformly
+    className="flex flex-col flex-grow gap-2"
+    onChange={onChange}
+  >
+    {%- for property in modelDefinition.properties %}
+    <FieldStatus required>
+        <TextField
+        name="{{ property.name | camel_case }}"
+        label="{{ property.name }}"
+        value={ {{ _modelName }}.{{ property.name | camel_case }} }
+        />
+    </FieldStatus>
+    {%- endfor %}
+  </Uniformly>
+);

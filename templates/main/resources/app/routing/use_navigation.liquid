@@ -1,0 +1,24 @@
+import { useMemo } from 'react';
+import { useUser } from '@livefree/applications';
+import { {{ _MainModuleName }}Config } from 'core/config';
+
+const { apiKey } = {{ _MainModuleName }}Config.current.api;
+
+export const useNavigationItems = () => {
+  const user = useUser();
+  const items = useMemo(() => {
+    let result = [
+      {
+        label: '',
+        isHeader: true,
+        subPaths: [],
+      },
+    ];
+
+    {{ app-inject-token }} - useNavigationItems -
+
+    return result;
+  }, [user]);
+
+  return items;
+};

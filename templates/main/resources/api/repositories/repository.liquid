@@ -1,0 +1,40 @@
+using AutoMapper;
+using LiveFree.Core.Repository;{%- if isMql %}
+using LiveFree.Core.Repository.MQL;{%- endif %}
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using {{ BaseNamespaceName }}.Models;
+using {{ BaseNamespaceName }}.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace {{ BaseNamespaceName }}.Repositories.SqlServer;
+
+public interface I{{ _ModuleName }}Repository : IRepository<{{ _ModelName }}Model, {{ keyType }}>{%- if isMql %}, IMqlRepository<{{ _ModelName }}Model>{%- endif %}
+{
+
+}
+
+public class {{ _ModuleName }}Repository(
+    {{ IConnectionFactoryName }} connectionFactory,
+    IMapper mapper,{%- if isMql %}
+    IMqlQuery<{{ _ModelName }}Model> mql,{%- endif %}
+    ILogger<{{ _ModelName }}Entity> logger,
+    {{ IUnitOfWorkName }} unitOfWork){%- if isRepositoryView %}
+    : ViewRepository<{{ _ModelName }}Model, {{ _ModelName }}Entity, {{ keyType }}>(connectionFactory, mapper, logger, unitOfWork),{%- else %}
+    : BaseRepository<{{ _ModelName }}Model, {{ _ModelName }}Entity, {{ keyType }}>(connectionFactory, mapper, logger, unitOfWork),{%- endif %}
+        I{{ _ModuleName }}Repository
+{
+{%- if isRepositoryView %}
+    // TODO: {{ _ModelName }} - Define view name and excluded columns
+    protected override string TableName => "";
+    protected override IEnumerable<string> ExcludedColumns => new List<string>
+    {
+    };
+{%- endif %}
+{%- if isMql %}
+
+    public Task<MqlQueryResult<{{ _ModelName }}Model>> QueryMqlAsync(string query)
+        => mql.ExecuteAsync(query);
+{%- endif %}
+}

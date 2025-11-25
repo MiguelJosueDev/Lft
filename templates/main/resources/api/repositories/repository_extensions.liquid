@@ -1,0 +1,31 @@
+using LiveFree.Core.Repository.Extensions;
+using LiveFree.Core.Repository.MQL;
+using LiveFree.Core.Validation;
+using {{ BaseNamespaceName }}.Models;
+using {{ BaseNamespaceName }}.Repositories.SqlServer.Entities;
+using {{ BaseNamespaceName }}.Repositories.SqlServer.Mappers;
+using Microsoft.Extensions.DependencyInjection;
+using RepoDb;
+
+namespace {{ BaseNamespaceName }}.Repositories.SqlServer.Extensions;
+
+public static class ServiceRegistrationExtensions
+{
+    public static IServiceCollection Add{{ _MainModuleName }}Repositories(this IServiceCollection services)
+    {
+        services.RequireThat().NotNull();
+
+        GlobalConfiguration.Setup().UseSqlServer();
+
+        services.AddAutoMapper(typeof({{ _MainModuleName }}MappingProfile));
+
+        {{ api-inject-token }} - Repositories -
+
+        services.AddMqlQueries<{{ IConnectionFactoryName }}, {{ IUnitOfWorkName }}>(options =>
+        {
+            {{ api-inject-token }} - Repositories.MqlQueries -
+        });
+
+        return services;
+    }
+}

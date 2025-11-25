@@ -1,0 +1,81 @@
+name: Repository
+isEntryPoint: true
+commandName: repository
+aliases: [repo]
+description: Generate repository pattern implementation
+group: backend
+requiresContext: backend
+dependencies:
+  - model
+action: group
+
+# Variables configuration
+vars:
+  imports: all
+  locals: 
+  - name: isRepositoryView
+    description: Indicates if the repository pattern is being used with View or Table
+    type: bool
+    default: true
+    forcePrompt: true
+  - name: isMql
+    description: Setup MQL integration for this repository
+    type: bool
+    default: true
+    forcePrompt: true
+
+steps:
+  - name: Create Entity
+    action: create
+    def: api-repositories
+    source: resources/api/repositories/entity.liquid
+    output: "Entities/{{ _ModelName }}Entity.cs"
+
+  - name: Create Repository
+    action: create
+    def: api-repositories
+    source: resources/api/repositories/repository.liquid
+    output: "{{ _ModuleName }}Repository.cs"
+
+  - name: Register Repository in DI Container
+    action: ast-insert
+    def: api-repositories
+    output: Extensions/ServiceRegistrationExtensions.cs
+    targetMethod: "Add{{ _MainModuleName }}Repositories"
+    insertionType: "InMethod"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "AddScoped<I{{ _ModuleName }}Repository"
+      format: true
+    template: "services.AddScoped<I{{ _ModuleName }}Repository, {{ _ModuleName }}Repository>();"
+    createFile: true
+    createFileSource: resources/api/repositories/repository_extensions.liquid
+
+  - name: Register Repository in MQL Container
+    action: ast-insert
+    def: api-repositories
+    output: Extensions/ServiceRegistrationExtensions.cs
+    targetMethod: "Add{{ _MainModuleName }}Repositories"
+    insertionType: "InMethod"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "AddMqlQuery<{{ _ModelName }}Model"
+      format: true
+    template: "options.AddMqlQuery<{{ _ModelName }}Model, {{ _ModelName }}Entity>();"
+
+  - name: Register Repository Mapping
+    action: ast-insert
+    def: api-repositories
+    output: "Mappers/{{ _MainModuleName }}MappingProfile.cs"
+    targetClass: "{{ _MainModuleName }}MappingProfile"
+    insertionType: "InConstructor"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "CreateMap<{{ _ModelName }}Model, {{ _ModelName }}Entity>"
+      format: true
+    template: "CreateMap<{{ _ModelName }}Model, {{ _ModelName }}Entity>().ReverseMap();"
+    createFile: true
+    createFileSource: resources/api/repositories/repository_mapping.liquid

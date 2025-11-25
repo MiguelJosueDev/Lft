@@ -1,0 +1,67 @@
+import { useState } from 'react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
+import { {{ _ModelName }}Form } from 'features/{{ _moduleName }}/components';
+
+const {{ _ModelName }}UpdateController = Reactive(
+  ({ services, data, monitors, {{ _modelName }}Id, onSuccess, onClose }) => {
+    const { {{ _modelName }} } = data;
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.{{ _moduleName }}, 'update{{ _ModelName }}', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    useReactorOnSuccess(services.{{ _moduleName }}, 'delete{{ _ModelName }}', () => {
+      onClose && onClose();
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <{{ _ModelName }}Form {{ _modelName }}={ {{ _modelName }} } onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <DeleteButton
+            size="sm"
+            onPress={() => services.{{ _moduleName }}.delete{{ _ModelName }}({{ _modelName }}Id)}
+            isLoading={monitors.delete{{ _ModelName }}.executing}
+          />
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.{{ _moduleName }}.update{{ _ModelName }}({{ _modelName }}Id, form.data)
+            }
+            isLoading={monitors.update{{ _ModelName }}.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: '{{ _ModelName }}UpdateController',
+    sync: (services, { {{ _modelName }}Id }) => [
+      {
+        execute: () => services.{{ _moduleName }}.get{{ _ModelName }}({{ _modelName }}Id),
+        deps: [{{ _modelName }}Id],
+      },
+    ],
+    queries: ({ {{ _modelName }}Id }) => [
+      {
+        name: '{{ _modelName }}',
+        defaultValue: {},
+        execute: db => db.{{ _moduleName }}.get({{ _modelName }}Id),
+        deps: [{{ _modelName }}Id],
+      },
+    ],
+    monitors: services => [
+      services.{{ _moduleName }}.update{{ _ModelName }},
+      services.{{ _moduleName }}.delete{{ _ModelName }},
+    ],
+  },
+);
+
+{{ _ModelName }}UpdateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <{{ _ModelName }}UpdateController onSuccess={onSuccess} {...props} />
+));
+
+export { {{ _ModelName }}UpdateController };

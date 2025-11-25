@@ -1,0 +1,79 @@
+import { ReactiveService } from '@livefree/reactive';
+import { {{ _MainModuleName }}SDK } from 'sdk/{{ _MainModuleName }}SDK';
+{%- if isMql %}
+import { Mql } from 'core/helpers';
+import { setTotalResults } from '@livefree/applications';
+{%- endif %}
+import { {{ _MainModuleName }}Config } from 'core/config';
+
+{%- if isMql %}
+
+class {{ _ModuleName }}Client extends {{ _MainModuleName }}SDK.{{ _ModuleName }}Client {
+  query{{ _ModuleName }}(metadata) {
+    return metadata
+      ? super.query{{ _ModuleName }}(Mql.build('{{ _ModelName }}Model', metadata))
+      : super.query{{ _ModuleName }}('FETCH {{ _ModelName }}Model;');
+  }
+}
+{%- else %}
+const {{ _ModuleName }}Client = {{ _MainModuleName }}SDK.{{ _ModuleName }}Client;
+{%- endif %}
+
+export const {{ _ModuleName }}Service = new (ReactiveService('{{ _moduleName }}', {{ _ModuleName }}Client, {
+  recursive: true,
+  recurseDepth: 2,
+}))({{ _MainModuleName }}Config);
+
+export const {{ _ModuleName }}Reactor = {{ _ModuleName }}Service.reactor('{{ _moduleName }}Reactor', {
+  success: (response, services, db) => {
+    const { source, args, payload } = response;
+
+    switch (source) {
+{%- if isMql %}
+      case {{ _ModuleName }}Service.query{{ _ModuleName }}: {
+        const { values, totalCount } = payload;
+
+        db.{{ _moduleName }}.clear();
+        setTotalResults(source.action, totalCount);
+
+        return db.{{ _moduleName }}.bulkAdd(values);
+      }
+{%- endif %}
+
+      case {{ _ModuleName }}Service.get{{ _ModelName }}:
+        return db.{{ _moduleName }}.put(payload);
+
+      case {{ _ModuleName }}Service.create{{ _ModelName }}:
+        services.alerts.actionSuccess(`{{ _ModelName }} added successfully`, '{{ _moduleName }}', response);
+        return db.{{ _moduleName }}.add(payload);
+
+      case {{ _ModuleName }}Service.update{{ _ModelName }}:
+        services.alerts.actionSuccess(`{{ _ModelName }} updated successfully`, '{{ _moduleName }}', response);
+        return db.{{ _moduleName }}.put(payload);
+
+      case {{ _ModuleName }}Service.delete{{ _ModelName }}:
+        services.alerts.actionSuccess(`{{ _ModelName }} deleted successfully`, '{{ _moduleName }}', response);
+        return db.{{ _moduleName }}.delete(args[0]);
+    }
+  },
+  error: (response, services) => {
+    switch (response.source) {
+        {%- if isMql %}
+      case {{ _ModuleName }}Service.query{{ _ModuleName }}:
+        return services.alerts.actionError(`Failed to fetch {{ _ModuleName }}`, '{{ _moduleName }}', response);
+        {%- endif %}
+
+      case {{ _ModuleName }}Service.get{{ _ModelName }}:
+        return services.alerts.actionError(`Failed to fetch {{ _ModelName }} details`, '{{ _moduleName }}', response);
+
+      case {{ _ModuleName }}Service.create{{ _ModelName }}:
+        return services.alerts.actionError(`Failed to create {{ _ModelName }}`, '{{ _moduleName }}', response);
+
+      case {{ _ModuleName }}Service.update{{ _ModelName }}:
+        return services.alerts.actionError(`Failed to update {{ _ModelName }}`, '{{ _moduleName }}', response);
+
+      case {{ _ModuleName }}Service.delete{{ _ModelName }}:
+        return services.alerts.actionError(`Failed to delete {{ _ModelName }}`, '{{ _moduleName }}', response);
+    }
+  },
+});

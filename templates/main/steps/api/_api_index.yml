@@ -1,0 +1,25 @@
+name: Api
+isEntryPoint: true
+commandName: api
+aliases: [backend, feature-api]
+description: Generate complete backend API layer (model, repository, service, controller)
+group: composite
+requiresContext: backend
+action: group
+dependencies: [model, repository, service, controller]
+
+# Variables configuration - import all globals for composite command
+vars:
+  imports: all
+  locals: 
+    - name: isMql
+      description: Setup MQL integration for this API
+      type: bool
+      default: true
+      forcePrompt: true
+
+steps:
+  - !include models.yml
+  - !include repositories.yml
+  - !include services.yml
+  - !include host.yml

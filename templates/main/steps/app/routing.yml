@@ -1,0 +1,123 @@
+name: Router
+isEntryPoint: true
+commandName: router
+description: Generate frontend routing
+group: frontend
+requiresContext: frontend
+action: group
+
+# Variables configuration
+vars:
+  imports: all
+  locals: 
+    - name: isMql
+      description: Setup MQL integration for this repository
+      type: bool
+      default: true
+      forcePrompt: true
+
+steps:
+  - name: Routing Root Paths
+    action: ast-insert
+    def: app-src
+    output: features/routing/RoutePaths.js
+    targetObject: "RootPaths"
+    insertionType: "InObject"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "{{ _moduleName }}: '/{{ _routeModuleName }}'"
+    template: "{{ _moduleName }}: '/{{ _routeModuleName }}',"
+    createFile: true
+    createFileSource: resources/app/routing/routing.liquid
+
+  - name: Routing Route Paths
+    action: ast-insert
+    def: app-src
+    output: features/routing/RoutePaths.js
+    targetObject: "RoutePaths"
+    insertionType: "InObject"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "{{ _moduleName }}:"
+    source: resources/app/routing/routing_paths.liquid
+    createFile: true
+    createFileSource: resources/app/routing/routing.liquid
+
+  - name: Routing useNavigationItems
+    action: ast-insert
+    def: app-src
+    output: features/routing/useNavigationItems.js
+    targetVariable: "items"
+    insertionType: "InArray"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "key: '{{ _modelName }}'"
+    source: resources/app/routing/use_navigation_item.liquid
+    createFile: true
+    createFileSource: resources/app/routing/use_navigation.liquid
+
+  - name: Routing useSetupCreateItems
+    action: ast-insert
+    def: app-src
+    output: features/routing/useSetupCreateItems.js
+    targetVariable: "items"
+    insertionType: "InArray"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "key: '{{ _modelName }}'"
+    source: resources/app/routing/use_setup_create_item.liquid
+    createFile: true
+    createFileSource: resources/app/routing/use_setup_create.liquid
+
+  - name: Routing useSetupCreateItems Register
+    action: ast-insert
+    def: app-src
+    output: features/routing/useSetupCreateItems.js
+    targetFunction: "useRegisterCreateItems"
+    insertionType: "InFunctionCall"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "{{ _modelName }}: () => navigate"
+      argumentIndex: 2
+    template: "{{ _modelName }}: () => navigate(RoutePaths.{{ _moduleName }}.create()),"
+    createFile: true
+    createFileSource: resources/app/routing/use_setup_create.liquid
+
+  - name: Create Router Module File
+    action: create
+    def: app-src
+    source: resources/app/routing/router_module.liquid
+    output: features/routing/routers/{{ _ModuleName}}Router.jsx
+    createFile: true
+    createFileSource: resources/app/routing/router_module.liquid
+
+  - name: Register Imports Routers
+    action: ast-insert
+    def: app-src
+    output: features/routing/Router.jsx
+    insertionType: "Import"
+    idempotent: true
+    parameters:
+      importStatement: "import { {{ _ModuleName }}Router } from './routers/{{ _ModuleName }}Router'"
+    template: "import { {{ _ModuleName }}Router } from './routers/{{ _ModuleName }}Router';"
+    createFile: true
+    createFileSource: resources/app/routing/router.liquid
+
+  - name: Register Routers
+    action: ast-insert
+    def: app-src
+    output: features/routing/Router.jsx
+    targetComponent: "Router"
+    insertionType: "InJSX"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "path=\"{{ _routeModuleName }}/*\""
+    template: '<Route path="{{ _routeModuleName }}/*" element={<{{ _ModuleName }}Router />} />'
+    createFile: true
+    createFileSource: resources/app/routing/router.liquid

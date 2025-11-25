@@ -1,0 +1,80 @@
+name: Feature
+isEntryPoint: true
+commandName: feature
+aliases: [list, form, view, detail]
+description: Generate frontend feature components (list, form, view)
+group: frontend
+requiresContext: frontend
+action: group
+
+# Variables configuration
+vars:
+  imports: all
+  locals: []
+
+steps:
+  - name: Create Index Views
+    action: create
+    def: app-src
+    source: resources/app/feature/views/index_view.liquid
+    output: "features/{{ _moduleName }}/views/index.js"
+
+  - name: Create List Views
+    action: create
+    def: app-src
+    source: resources/app/feature/views/list_view.liquid
+    output: "features/{{ _moduleName }}/views/{{ _ModuleName }}ListView.jsx"
+
+  - name: Create Add Views
+    action: create
+    def: app-src
+    source: resources/app/feature/views/create_view.liquid
+    output: "features/{{ _moduleName }}/views/{{ _ModelName }}CreateView.jsx"
+
+  - name: Create Update Views
+    action: create
+    def: app-src
+    source: resources/app/feature/views/update_view.liquid
+    output: "features/{{ _moduleName }}/views/{{ _ModelName }}UpdateView.jsx"
+
+  - name: Create Index Controllers
+    action: create
+    def: app-src
+    source: resources/app/feature/controllers/index_controller.liquid
+    output: "features/{{ _moduleName }}/controllers/index.js"
+
+  - name: Create List Controllers
+    action: create
+    def: app-src
+    source: resources/app/feature/controllers/list_controller.liquid
+    output: "features/{{ _moduleName }}/controllers/{{ _ModuleName }}ListController.jsx"
+
+  - name: Create Add Controllers
+    action: create
+    def: app-src
+    source: resources/app/feature/controllers/create_controller.liquid
+    output: "features/{{ _moduleName }}/controllers/{{ _ModelName }}CreateController.jsx"
+
+  - name: Create Update Controllers
+    action: create
+    def: app-src
+    source: resources/app/feature/controllers/update_controller.liquid
+    output: "features/{{ _moduleName }}/controllers/{{ _ModelName }}UpdateController.jsx"
+
+  - name: Create Index Components
+    action: create
+    def: app-src
+    source: resources/app/feature/components/index_components.liquid
+    output: "features/{{ _moduleName }}/components/index.js"
+
+  - name: Create List Components
+    action: create
+    def: app-src
+    source: resources/app/feature/components/list.liquid
+    output: "features/{{ _moduleName }}/components/{{ _ModuleName }}List.jsx"
+
+  - name: Create Form Components
+    action: create
+    def: app-src
+    source: resources/app/feature/components/form.liquid
+    output: "features/{{ _moduleName }}/components/{{ _ModelName }}Form.jsx"

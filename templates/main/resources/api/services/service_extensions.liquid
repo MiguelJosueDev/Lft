@@ -1,0 +1,21 @@
+using {{ BaseNamespaceName }}.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+
+namespace {{ BaseNamespaceName }}.Services.Extensions;
+
+public static class ServiceRegistrationExtensions
+{
+    public static IServiceCollection Add{{ _MainModuleName }}Services(
+        this IServiceCollection services,
+        IConfiguration config,
+        IHostEnvironment env)
+    {
+        services.AddHttpContextAccessor();
+        {{ api-inject-token }} - Services -
+
+        return services;
+    }
+}

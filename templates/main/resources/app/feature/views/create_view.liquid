@@ -1,0 +1,17 @@
+import { {{ _ModelName }}CreateController } from 'features/{{ _moduleName }}/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const {{ _ModelName }}CreateView = () => {
+  const navigate = useNavigate();
+
+  return (
+    <{{ _ModelName }}CreateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Create {{ _ModelName }}"
+      onSuccess={() => navigate(RoutePaths.{{ _moduleName }}.list())}
+      onClose={() => navigate(RoutePaths.{{ _moduleName }}.list())}
+    />
+  );
+};

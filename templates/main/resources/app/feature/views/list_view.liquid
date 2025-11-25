@@ -1,0 +1,23 @@
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
+import { useSyncCreateItem } from '@livefree/applications';
+import { {{ _ModuleName }}ListController } from 'features/{{ _moduleName }}/controllers';
+import { RoutePaths } from 'features/routing';
+
+export const {{ _ModuleName }}ListView = () => {
+  const navigate = useNavigate();
+  useSyncCreateItem('{{ _modelName }}');
+
+  return (
+    <>
+      <div className="flex flex-row justify-between mb-4">
+        <Breadcrumbs className="content-center">
+          <BreadcrumbItem isDisabled>{{ _MainModuleName }}</BreadcrumbItem>
+          <BreadcrumbItem>{{ _ModuleName }}</BreadcrumbItem>
+        </Breadcrumbs>
+      </div>
+      <{{ _ModuleName }}ListController onSelect={item => navigate(RoutePaths.{{ _moduleName }}.update(item.id))} />
+      <Outlet />
+    </>
+  );
+};

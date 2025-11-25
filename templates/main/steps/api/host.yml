@@ -1,0 +1,57 @@
+name: Controller
+isEntryPoint: true
+commandName: controller
+aliases: [endpoint, endpoints]
+description: Generate API controllers and endpoints
+group: backend
+requiresContext: backend
+dependencies: [model, repository, service]
+action: group
+
+# Variables configuration
+vars:
+  imports: all
+  locals: []
+
+steps:
+  - name: Create Endpoint
+    action: create
+    def: api-module
+    source: resources/api/host/endpoints.liquid
+    output: "Endpoints/{{ _ModuleName }}Endpoint.cs"
+
+  - name: Create Route
+    action: create
+    def: api-module
+    source: resources/api/host/routes.liquid
+    output: "Routes/{{ _ModuleName }}Routes.cs"
+
+  - name: Register Routes
+    action: ast-insert
+    def: api-module
+    output: Extensions/{{ _MainModuleName }}Routes{{ RoutesExtensionSuffix }}.cs
+    targetMethod: "Add{{ _MainModuleName }}Routes"
+    insertionType: "InMethod"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "Map{{ _ModuleName }}Routes"
+      format: true
+    template: 'app.Map{{ _ModuleName }}Routes(basePrefix: basePrefix, prefix: "{{ _routeModuleName }}");'
+    createFile: true
+    createFileSource: resources/api/host/routes_extensions.liquid
+
+  - name: Register Endpoints
+    action: ast-insert
+    def: api-module
+    output: Extensions/{{ _MainModuleName }}ServicesExtensions.cs
+    targetMethod: "Add{{ _MainModuleName }}Services"
+    insertionType: "InMethod"
+    idempotent: true
+    parameters:
+      queryType: "CodePattern"
+      queryPattern: "AddScoped<I{{ _ModuleName }}Endpoint"
+      format: true
+    template: "services.AddScoped<I{{ _ModuleName }}Endpoint, {{ _ModuleName }}Endpoint>();"
+    createFile: true
+    createFileSource: resources/api/host/services_extensions.liquid

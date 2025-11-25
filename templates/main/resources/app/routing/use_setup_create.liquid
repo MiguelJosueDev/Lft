@@ -1,0 +1,24 @@
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useRegisterCreateItems, useUser } from '@livefree/applications';
+import { RoutePaths } from 'features/routing';
+import { {{ _MainModuleName }}Config } from 'core/config';
+
+const { apiKey } = {{ _MainModuleName }}Config.current.api;
+
+export const useSetupCreateItems = () => {
+  const navigate = useNavigate();
+  const user = useUser();
+
+  const items = useMemo(() => {
+    let result = [];
+
+    {{ app-inject-token }} - useSetupCreateItems -
+
+    return result;
+  }, [user]);
+
+  useRegisterCreateItems('{{ _mainModuleName }}', items, {
+    {{ api-inject-token }} - Register useSetupCreateItems -
+  });
+};

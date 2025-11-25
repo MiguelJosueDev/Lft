@@ -1,0 +1,20 @@
+import { {{ _ModelName }}UpdateController } from 'features/{{ _moduleName }}/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const {{ _ModelName }}UpdateView = ({ {{ _modelName }}Id }) => {
+  const parsedId =
+    !isNaN(Number({{ _modelName }}Id)) && {{ _modelName }}Id !== '' ? Number({{ _modelName }}Id) : {{ _modelName }}Id;
+  const navigate = useNavigate();
+
+  return (
+    <{{ _ModelName }}UpdateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Update {{ _ModelName }}"
+      {{ _modelName }}Id={parsedId}
+      onSuccess={() => navigate(RoutePaths.{{ _moduleName }}.list())}
+      onClose={() => navigate(RoutePaths.{{ _moduleName }}.list())}
+    />
+  );
+};

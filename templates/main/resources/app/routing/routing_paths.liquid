@@ -1,0 +1,5 @@
+  {{ _moduleName}}: {
+    list: () => rootPaths.{{ _moduleName}},
+    create: () => `${rootPaths.{{ _moduleName}}}/create`,
+    update: (id) => `${rootPaths.{{ _moduleName}}}/${id}/update`,
+  },

@@ -1,0 +1,32 @@
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using {{ BaseNamespaceName }}.Interfaces;
+using {{ BaseNamespaceName }}.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace {{ BaseNamespaceName }}.Api.Endpoints;
+
+public interface I{{ _ModuleName }}Endpoint : IModelEndpoint<{{ _ModelName }}Model, {{ keyType }}>
+{
+{%- if isMql %}
+    Task<IResult> QueryAsync(string query);
+{%- endif %}
+}
+
+public class {{ _ModuleName }}Endpoint(
+    I{{ _ModuleName }}Service service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<{{ _ModelName }}Model, I{{ _ModuleName }}Service, {{ keyType }}>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), I{{ _ModuleName }}Endpoint
+{
+{%- if isMql %}
+    public async Task<IResult> QueryAsync(string query)
+        => string.IsNullOrWhiteSpace(query)
+            ? Results.BadRequest("Query cannot be empty.")
+            : TypedResults.Ok(await Service.QueryMqlAsync(query));
+{%- endif %}
+
+}

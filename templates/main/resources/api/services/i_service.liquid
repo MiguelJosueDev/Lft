@@ -1,0 +1,12 @@
+using LiveFree.Core.Service;
+{%- if isMql %}
+using LiveFree.Core.Service.MQL;
+{%- endif %}
+using {{ BaseNamespaceName }}.Models;
+
+namespace {{ BaseNamespaceName }}.Interfaces;
+
+public interface I{{ _ModuleName }}Service : IModelService<{{ _ModelName }}Model, {{ keyType }}>{%- if  isMql %}, IMqlService<{{ _ModelName }}Model>{%- endif %}
+{
+
+}

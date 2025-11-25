@@ -1,0 +1,23 @@
+using {{ BaseNamespaceName }}.Api.Endpoints;
+using {{ BaseNamespaceName }}.Repositories.SqlServer.Extensions;
+using {{ BaseNamespaceName }}.Services.Extensions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace {{ BaseNamespaceName }}.Api.Extensions;
+
+public static class {{ _MainModuleName }}ServicesExtensions
+{
+    public static WebApplicationBuilder Add{{ _MainModuleName }}Services(this WebApplicationBuilder builder)
+    {
+        var services = builder.Services;
+
+        services.AddScoped<I{{ _MainModuleName }}AuthorizedApplicationService, {{ _MainModuleName }}AuthorizedApplicationService>();
+        services.Add{{ _MainModuleName }}Repositories();
+        services.Add{{ _MainModuleName }}Services(builder.Configuration, builder.Environment);
+
+        {{ api-inject-token }} - Endpoints -
+
+        return builder;
+    }
+}
