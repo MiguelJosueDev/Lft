@@ -11,7 +11,7 @@ public sealed class LcsFileDiffService : IFileDiffService
 
         var lcsTable = BuildLcsTable(oldLines, newLines);
         var diffLines = BacktrackDiff(oldLines, newLines, lcsTable);
-        var hunks = BuildHunks(diffLines);
+        var hunks = BuildHunks(diffLines, contextLines: 1);
 
         return new FileDiff(filePath, hunks);
     }
@@ -94,57 +94,108 @@ public sealed class LcsFileDiffService : IFileDiffService
         return result;
     }
 
-    private static IReadOnlyList<DiffHunk> BuildHunks(IReadOnlyList<DiffLine> diffLines)
+    private static IReadOnlyList<DiffHunk> BuildHunks(IReadOnlyList<DiffLine> diffLines, int contextLines)
     {
         var hunks = new List<DiffHunk>();
-        var oldLineIndex = 1;
-        var newLineIndex = 1;
-        var position = 0;
+        var index = 0;
 
-        while (position < diffLines.Count)
+        while (index < diffLines.Count)
         {
-            var line = diffLines[position];
-            if (line.Kind == DiffLineKind.Unchanged)
+            if (diffLines[index].Kind == DiffLineKind.Unchanged)
             {
-                oldLineIndex++;
-                newLineIndex++;
-                position++;
+                index++;
                 continue;
             }
 
-            var hunkLines = new List<DiffLine>();
-            var hunkOldStart = oldLineIndex;
-            var hunkNewStart = newLineIndex;
-            var hunkOldCount = 0;
-            var hunkNewCount = 0;
-            var startPosition = position;
+            var hunkStart = Math.Max(index - contextLines, 0);
+            var hunkEnd = FindHunkEnd(diffLines, index, contextLines);
 
-            // Collect all lines in this hunk and count changes
-            while (position < diffLines.Count && diffLines[position].Kind != DiffLineKind.Unchanged)
-            {
-                var current = diffLines[position];
-                hunkLines.Add(current);
+            var (oldStartLine, newStartLine) = GetLinePositions(diffLines, hunkStart);
+            var (oldCount, newCount, hunkLines) = BuildHunkLines(diffLines, hunkStart, hunkEnd);
 
-                if (current.Kind == DiffLineKind.Removed)
-                {
-                    hunkOldCount++;
-                }
-                else if (current.Kind == DiffLineKind.Added)
-                {
-                    hunkNewCount++;
-                }
-
-                position++;
-            }
-
-            // Update indices after collecting the hunk
-            oldLineIndex += hunkOldCount;
-            newLineIndex += hunkNewCount;
-
-            hunks.Add(new DiffHunk(hunkOldStart, hunkOldCount, hunkNewStart, hunkNewCount, hunkLines));
+            hunks.Add(new DiffHunk(oldStartLine, oldCount, newStartLine, newCount, hunkLines));
+            index = hunkEnd;
         }
 
         return hunks;
+    }
+
+    private static (int OldCount, int NewCount, List<DiffLine> Lines) BuildHunkLines(
+        IReadOnlyList<DiffLine> diffLines,
+        int start,
+        int end)
+    {
+        var oldCount = 0;
+        var newCount = 0;
+        var lines = new List<DiffLine>(end - start);
+
+        for (var i = start; i < end; i++)
+        {
+            var line = diffLines[i];
+            lines.Add(line);
+
+            switch (line.Kind)
+            {
+                case DiffLineKind.Unchanged:
+                    oldCount++;
+                    newCount++;
+                    break;
+                case DiffLineKind.Removed:
+                    oldCount++;
+                    break;
+                case DiffLineKind.Added:
+                    newCount++;
+                    break;
+            }
+        }
+
+        return (oldCount, newCount, lines);
+    }
+
+    private static int FindHunkEnd(IReadOnlyList<DiffLine> diffLines, int changeIndex, int contextLines)
+    {
+        var lastChange = changeIndex;
+
+        for (var i = changeIndex + 1; i < diffLines.Count; i++)
+        {
+            if (diffLines[i].Kind != DiffLineKind.Unchanged)
+            {
+                lastChange = i;
+                continue;
+            }
+
+            if (i - lastChange > contextLines)
+            {
+                return Math.Min(lastChange + contextLines + 1, diffLines.Count);
+            }
+        }
+
+        return diffLines.Count;
+    }
+
+    private static (int OldLine, int NewLine) GetLinePositions(IReadOnlyList<DiffLine> diffLines, int endExclusive)
+    {
+        var oldLine = 1;
+        var newLine = 1;
+
+        for (var i = 0; i < endExclusive; i++)
+        {
+            switch (diffLines[i].Kind)
+            {
+                case DiffLineKind.Unchanged:
+                    oldLine++;
+                    newLine++;
+                    break;
+                case DiffLineKind.Removed:
+                    oldLine++;
+                    break;
+                case DiffLineKind.Added:
+                    newLine++;
+                    break;
+            }
+        }
+
+        return (oldLine, newLine);
     }
 }
 
