@@ -98,6 +98,9 @@ build/
 .env.production.local
 .env.test.local
 
+# Fake script artifacts
+.fake
+
 ############################
 # GEMINI / ANTIGRAVITY (por si acaso)
 ############################
