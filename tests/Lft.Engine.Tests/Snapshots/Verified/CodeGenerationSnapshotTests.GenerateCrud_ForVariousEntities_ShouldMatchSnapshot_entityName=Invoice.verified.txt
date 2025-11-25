@@ -1,0 +1,503 @@
+﻿{
+  App/core/services/InvoicesService.js:
+import { ReactiveService } from '@livefree/reactive';
+import { GeneratedSDK } from 'sdk/GeneratedSDK';
+import { GeneratedConfig } from 'core/config';
+const InvoicesClient = GeneratedSDK.InvoicesClient;
+
+export const InvoicesService = new (ReactiveService('invoices', InvoicesClient, {
+  recursive: true,
+  recurseDepth: 2,
+}))(GeneratedConfig);
+
+export const InvoicesReactor = InvoicesService.reactor('invoicesReactor', {
+  success: (response, services, db) => {
+    const { source, args, payload } = response;
+
+    switch (source) {
+
+      case InvoicesService.getInvoice:
+        return db.invoices.put(payload);
+
+      case InvoicesService.createInvoice:
+        services.alerts.actionSuccess(`Invoice added successfully`, 'invoices', response);
+        return db.invoices.add(payload);
+
+      case InvoicesService.updateInvoice:
+        services.alerts.actionSuccess(`Invoice updated successfully`, 'invoices', response);
+        return db.invoices.put(payload);
+
+      case InvoicesService.deleteInvoice:
+        services.alerts.actionSuccess(`Invoice deleted successfully`, 'invoices', response);
+        return db.invoices.delete(args[0]);
+    }
+  },
+  error: (response, services) => {
+    switch (response.source) {
+
+      case InvoicesService.getInvoice:
+        return services.alerts.actionError(`Failed to fetch Invoice details`, 'invoices', response);
+
+      case InvoicesService.createInvoice:
+        return services.alerts.actionError(`Failed to create Invoice`, 'invoices', response);
+
+      case InvoicesService.updateInvoice:
+        return services.alerts.actionError(`Failed to update Invoice`, 'invoices', response);
+
+      case InvoicesService.deleteInvoice:
+        return services.alerts.actionError(`Failed to delete Invoice`, 'invoices', response);
+    }
+  },
+});
+,
+  App/features/invoices/components/index.js:
+export * from './InvoicesList';
+export * from './InvoiceForm';
+,
+  App/features/invoices/components/InvoiceForm.jsx:
+import { Uniformly } from '@livefree/uniformly';
+import { FieldStatus, TextField } from '@livefree/react-ui';
+
+export const InvoiceForm = ({ invoice = {}, onChange }) => (
+  <Uniformly
+    className="flex flex-col flex-grow gap-2"
+    onChange={onChange}
+  >
+  </Uniformly>
+);
+,
+  App/features/invoices/components/InvoicesList.jsx:
+import { useCallback } from 'react';
+import { TableRow, TableColumn, TableCell } from '@heroui/react';;
+import { RequestBrokerDataTable } from '@livefree/react-ui';
+
+const columns = [
+  { propertyName: 'id', name: 'Id', isSortable: true },
+];
+
+export const InvoicesList = ({ invoices = [], filters, onSelect }) => {
+  const renderCell = useCallback((row, columnKey) => {
+    const cellValue = row[columnKey];
+
+    switch (columnKey) {
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  return (
+    <RequestBrokerDataTable
+      columns={columns}
+      items={ invoices }
+      filters={filters}
+      renderColumn={column => (
+        <TableColumn
+          key={column.propertyName}
+          allowsSorting={column?.isSortable}
+        >
+          {column.name}
+        </TableColumn>
+      )}
+      renderRow={row => (
+        <TableRow key={row.id} onClick={() => onSelect(row)}>
+          {columnKey => <TableCell key={columnKey}>{renderCell(row, columnKey)}</TableCell>}
+        </TableRow>
+      )}
+      withPagination
+      withSorting
+      withColumnSelection
+    />
+  );
+};
+,
+  App/features/invoices/controllers/index.js:
+export * from './InvoicesListController';
+export * from './InvoiceCreateController';
+export * from './InvoiceUpdateController';
+,
+  App/features/invoices/controllers/InvoiceCreateController.jsx:
+import { useState } from 'react';
+import { Button } from '@heroui/react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { SaveButton, withModalController } from '@livefree/react-ui';
+import { InvoiceForm } from 'features/invoices/components';
+
+const InvoiceCreateController = Reactive(
+  ({ services, monitors, onSuccess, onClose }) => {
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.invoices, 'createInvoice', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <InvoiceForm onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <Button size="sm" onPress={() => onClose && onClose()} color="default" variant="light">
+            Cancel
+          </Button>
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.invoices.createInvoice(form.data)
+            }
+            isLoading={monitors.createInvoice.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'InvoiceCreateController',
+    monitors: services => [services.invoices.createInvoice],
+  },
+);
+
+InvoiceCreateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <InvoiceCreateController onSuccess={onSuccess} {...props} />
+));
+
+export { InvoiceCreateController };
+,
+  App/features/invoices/controllers/InvoicesListController.jsx:
+import { useCallback } from 'react';
+import { Reactive } from '@livefree/reactive';
+import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
+import { InvoicesList } from 'features/invoices/components';
+
+export const InvoicesListController = Reactive(
+  ({ data, services, monitors, db, onSelect }) => {
+    const { invoices } = data;
+
+    const handleExecute = useCallback((action, metadata) => {
+      action(metadata);
+    }, []);
+
+    return (
+      <RequestBroker
+        actionKey="queryInvoices"
+        action={services.invoices.queryInvoices}
+        defaultSorting={ { propertyName: 'id', sortType: false } }
+        defaultPaging={ { skip: 0, take: 50, page: 1, totalCount: 0 } }
+        isExecuting={monitors.queryInvoices.executing}
+        skipInitial={() => db.invoices.toCollection().count()}
+        onExecute={handleExecute}
+      >
+        <InvoicesList
+          invoices={ invoices }
+          isExecuting={monitors.queryInvoices.executing}
+          onSelect={item => onSelect && onSelect(item)}
+        />
+      </RequestBroker>
+    );
+  },
+  {
+    name: 'InvoicesListController',
+    queries: (_, services) => [
+      {
+        name: 'invoices',
+        execute: db =>
+          queryDexieWithMetadata(db, services.invoices.queryInvoices.action, () => db.invoices, {
+            sorting: true,
+          }),
+        deps: [],
+      },
+    ],
+    monitors: services => [services.invoices.queryInvoices],
+  },
+);
+,
+  App/features/invoices/controllers/InvoiceUpdateController.jsx:
+import { useState } from 'react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
+import { InvoiceForm } from 'features/invoices/components';
+
+const InvoiceUpdateController = Reactive(
+  ({ services, data, monitors, invoiceId, onSuccess, onClose }) => {
+    const { invoice } = data;
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.invoices, 'updateInvoice', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    useReactorOnSuccess(services.invoices, 'deleteInvoice', () => {
+      onClose && onClose();
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <InvoiceForm invoice={ invoice } onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <DeleteButton
+            size="sm"
+            onPress={() => services.invoices.deleteInvoice(invoiceId)}
+            isLoading={monitors.deleteInvoice.executing}
+          />
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.invoices.updateInvoice(invoiceId, form.data)
+            }
+            isLoading={monitors.updateInvoice.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'InvoiceUpdateController',
+    sync: (services, { invoiceId }) => [
+      {
+        execute: () => services.invoices.getInvoice(invoiceId),
+        deps: [invoiceId],
+      },
+    ],
+    queries: ({ invoiceId }) => [
+      {
+        name: 'invoice',
+        defaultValue: {},
+        execute: db => db.invoices.get(invoiceId),
+        deps: [invoiceId],
+      },
+    ],
+    monitors: services => [
+      services.invoices.updateInvoice,
+      services.invoices.deleteInvoice,
+    ],
+  },
+);
+
+InvoiceUpdateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <InvoiceUpdateController onSuccess={onSuccess} {...props} />
+));
+
+export { InvoiceUpdateController };
+,
+  App/features/invoices/views/index.js:
+export * from './InvoicesListView';
+export * from './InvoiceCreateView';
+export * from './InvoiceUpdateView';
+,
+  App/features/invoices/views/InvoiceCreateView.jsx:
+import { InvoiceCreateController } from 'features/invoices/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const InvoiceCreateView = () => {
+  const navigate = useNavigate();
+
+  return (
+    <InvoiceCreateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Create Invoice"
+      onSuccess={() => navigate(RoutePaths.invoices.list())}
+      onClose={() => navigate(RoutePaths.invoices.list())}
+    />
+  );
+};
+,
+  App/features/invoices/views/InvoicesListView.jsx:
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
+import { useSyncCreateItem } from '@livefree/applications';
+import { InvoicesListController } from 'features/invoices/controllers';
+import { RoutePaths } from 'features/routing';
+
+export const InvoicesListView = () => {
+  const navigate = useNavigate();
+  useSyncCreateItem('invoice');
+
+  return (
+    <>
+      <div className="flex flex-row justify-between mb-4">
+        <Breadcrumbs className="content-center">
+          <BreadcrumbItem isDisabled>Generated</BreadcrumbItem>
+          <BreadcrumbItem>Invoices</BreadcrumbItem>
+        </Breadcrumbs>
+      </div>
+      <InvoicesListController onSelect={item => navigate(RoutePaths.invoices.update(item.id))} />
+      <Outlet />
+    </>
+  );
+};
+,
+  App/features/invoices/views/InvoiceUpdateView.jsx:
+import { InvoiceUpdateController } from 'features/invoices/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const InvoiceUpdateView = ({ invoiceId }) => {
+  const parsedId =
+    !isNaN(Number(invoiceId)) && invoiceId !== '' ? Number(invoiceId) : invoiceId;
+  const navigate = useNavigate();
+
+  return (
+    <InvoiceUpdateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Update Invoice"
+      invoiceId={parsedId}
+      onSuccess={() => navigate(RoutePaths.invoices.list())}
+      onClose={() => navigate(RoutePaths.invoices.list())}
+    />
+  );
+};
+,
+  App/features/routing/routers/InvoicesRouter.jsx:
+import { Route, Routes } from 'react-router-dom';
+import {
+  InvoicesListView,
+  InvoiceCreateView,
+  InvoiceUpdateView } from 'features/invoices/views';
+import { WithParams } from 'features/routing';
+
+export const InvoicesRouter = () => (
+  <Routes>
+    <Route path="/" element={<InvoicesListView />}>
+      <Route path="create" element={<InvoiceCreateView />} />
+      <Route path=":invoiceId/update" element={<WithParams element={ InvoiceUpdateView } />} />
+    </Route>
+  </Routes>
+);
+,
+  Endpoints/InvoicesEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IInvoicesEndpoint : IModelEndpoint<InvoiceModel, long>
+{
+}
+
+public class InvoicesEndpoint(
+    IInvoicesService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<InvoiceModel, IInvoicesService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IInvoicesEndpoint
+{
+
+}
+,
+  Entities/InvoiceEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Invoice - Review Entity Configuration
+[Table("Invoice", Schema = "dbo")]
+public class InvoiceEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  Interfaces/IInvoicesService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Models;
+
+namespace Lft.Generated.Interfaces;
+
+public interface IInvoicesService : IModelService<InvoiceModel, long>
+{
+
+}
+,
+  Models/InvoiceModel.cs:
+namespace Lft.Generated.Models;
+
+public class InvoiceModel
+{
+    public long Id { get; set; }
+
+}
+,
+  Repositories/InvoicesRepository.cs:
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace Lft.Generated.Repositories.SqlServer;
+
+public interface IInvoicesRepository : IRepository<InvoiceModel, long>
+{
+
+}
+
+public class InvoicesRepository(
+    IConnectionFactory connectionFactory,
+    IMapper mapper,
+    ILogger<InvoiceEntity> logger,
+    IUnitOfWork unitOfWork)
+    : BaseRepository<InvoiceModel, InvoiceEntity, long>(connectionFactory, mapper, logger, unitOfWork),
+        IInvoicesRepository
+{
+}
+,
+  Routes/InvoicesRoutes.cs:
+using LiveFree.Core.AspNetCore.Extensions;
+using LiveFree.Core.AspNetCore.Routing;
+using Lft.Generated.Api.Endpoints;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Lft.Generated.Api.Routes;
+
+public static class InvoicesRoutes
+{
+    public static void MapInvoicesRoutes(
+        this WebApplication app,
+        string basePrefix,
+        string prefix = "")
+    {
+        var group = app
+            .MapModelRoutes<InvoiceModel, IInvoicesEndpoint, long>(basePrefix, prefix, "Invoices")
+            .AddGet()
+            .AddCreate()
+            .AddUpdate()
+            .AddDelete()
+            .Builder
+            .RequireAuthorization();
+
+    }
+}
+,
+  Services/InvoicesService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class InvoicesService(
+    IInvoicesRepository repository,
+    ILogger<InvoiceModel> logger)
+    : BaseModelService<IInvoicesRepository, InvoiceModel, long>(repository, logger), IInvoicesService
+{
+}
+
+}

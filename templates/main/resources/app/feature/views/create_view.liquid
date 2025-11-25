@@ -1,4 +1,4 @@
-import { {{ _ModelName }}CreateController } from 'features/{{ _moduleName }}/controllers';
+import { {{ _ModelName }}CreateController } from 'features/{{ _moduleNameCamel }}/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
 
@@ -10,8 +10,8 @@ export const {{ _ModelName }}CreateView = () => {
       isOpen={true}
       isDismissable={false}
       title="Create {{ _ModelName }}"
-      onSuccess={() => navigate(RoutePaths.{{ _moduleName }}.list())}
-      onClose={() => navigate(RoutePaths.{{ _moduleName }}.list())}
+      onSuccess={() => navigate(RoutePaths.{{ _moduleNameCamel }}.list())}
+      onClose={() => navigate(RoutePaths.{{ _moduleNameCamel }}.list())}
     />
   );
 };

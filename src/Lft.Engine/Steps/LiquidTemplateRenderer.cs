@@ -32,53 +32,62 @@ public sealed class LiquidTemplateRenderer : ITemplateRenderer
             return null;
         });
 
+        // Register Humanizer filters for case transformations
         RegisterHumanizerFilters();
     }
 
     private void RegisterHumanizerFilters()
     {
+        // pascal_case: "funding type" or "fundingType" -> "FundingType"
         _options.Filters.AddFilter("pascal_case", (input, args, ctx) =>
         {
             var value = input.ToStringValue();
             return new StringValue(value.Pascalize());
         });
 
+        // camel_case: "FundingType" or "funding type" -> "fundingType"
         _options.Filters.AddFilter("camel_case", (input, args, ctx) =>
         {
             var value = input.ToStringValue();
             return new StringValue(value.Camelize());
         });
 
+        // kebab_case: "FundingType" -> "funding-type"
         _options.Filters.AddFilter("kebab_case", (input, args, ctx) =>
         {
             var value = input.ToStringValue();
             return new StringValue(value.Kebaberize());
         });
 
+        // snake_case: "FundingType" -> "funding_type"
         _options.Filters.AddFilter("snake_case", (input, args, ctx) =>
         {
             var value = input.ToStringValue();
             return new StringValue(value.Underscore());
         });
 
+        // pluralize: "Product" -> "Products", "Person" -> "People"
         _options.Filters.AddFilter("pluralize", (input, args, ctx) =>
         {
             var value = input.ToStringValue();
             return new StringValue(value.Pluralize());
         });
 
+        // singularize: "Products" -> "Product", "People" -> "Person"
         _options.Filters.AddFilter("singularize", (input, args, ctx) =>
         {
             var value = input.ToStringValue();
             return new StringValue(value.Singularize());
         });
 
+        // humanize: "SomeText" -> "Some text"
         _options.Filters.AddFilter("humanize", (input, args, ctx) =>
         {
             var value = input.ToStringValue();
             return new StringValue(value.Humanize());
         });
 
+        // titleize: "some text" -> "Some Text"
         _options.Filters.AddFilter("titleize", (input, args, ctx) =>
         {
             var value = input.ToStringValue();

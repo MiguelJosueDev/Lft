@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
 import { Reactive } from '@livefree/reactive';
 import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
-import { {{ _ModuleName}}List } from 'features/{{ _moduleName }}/components';
+import { {{ _ModuleName}}List } from 'features/{{ _moduleNameCamel }}/components';
 
 export const {{ _ModuleName }}ListController = Reactive(
   ({ data, services, monitors, db, onSelect }) => {
-    const { {{ _moduleName }} } = data;
+    const { {{ _moduleNameCamel }} } = data;
 
     const handleExecute = useCallback((action, metadata) => {
       action(metadata);
@@ -14,15 +14,15 @@ export const {{ _ModuleName }}ListController = Reactive(
     return (
       <RequestBroker
         actionKey="query{{  _ModuleName }}"
-        action={services.{{ _moduleName }}.query{{ _ModuleName }}}
+        action={services.{{ _moduleNameCamel }}.query{{ _ModuleName }}}
         defaultSorting={ { propertyName: 'id', sortType: false } }
         defaultPaging={ { skip: 0, take: 50, page: 1, totalCount: 0 } }
         isExecuting={monitors.query{{ _ModuleName }}.executing}
-        skipInitial={() => db.{{ _moduleName }}.toCollection().count()}
+        skipInitial={() => db.{{ _moduleNameCamel }}.toCollection().count()}
         onExecute={handleExecute}
       >
         <{{ _ModuleName }}List
-          {{ _moduleName }}={ {{  _moduleName }} }
+          {{ _moduleNameCamel }}={ {{  _moduleNameCamel }} }
           isExecuting={monitors.query{{ _ModuleName }}.executing}
           onSelect={item => onSelect && onSelect(item)}
         />
@@ -33,14 +33,14 @@ export const {{ _ModuleName }}ListController = Reactive(
     name: '{{ _ModuleName }}ListController',
     queries: (_, services) => [
       {
-        name: '{{ _moduleName }}',
+        name: '{{ _moduleNameCamel }}',
         execute: db =>
-          queryDexieWithMetadata(db, services.{{ _moduleName }}.query{{ _ModuleName }}.action, () => db.{{ _moduleName }}, {
+          queryDexieWithMetadata(db, services.{{ _moduleNameCamel }}.query{{ _ModuleName }}.action, () => db.{{ _moduleNameCamel }}, {
             sorting: true,
           }),
         deps: [],
       },
     ],
-    monitors: services => [services.{{ _moduleName }}.query{{ _ModuleName }}],
+    monitors: services => [services.{{ _moduleNameCamel }}.query{{ _ModuleName }}],
   },
 );

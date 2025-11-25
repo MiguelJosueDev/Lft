@@ -4,12 +4,9 @@ import { RequestBrokerDataTable } from '@livefree/react-ui';
 
 const columns = [
   { propertyName: 'id', name: 'Id', isSortable: true },
-{%- for property in modelDefinition.properties %}
-  { propertyName: '{{ property.name | camel_case }}', name: '{{ property.name }}', isSortable: true },
-{%- endfor %}
 ];
 
-export const {{ _ModuleName }}List = ({ {{ _moduleNameCamel }} = [], filters, onSelect }) => {
+export const UsersList = ({ users = [], filters, onSelect }) => {
   const renderCell = useCallback((row, columnKey) => {
     const cellValue = row[columnKey];
 
@@ -22,7 +19,7 @@ export const {{ _ModuleName }}List = ({ {{ _moduleNameCamel }} = [], filters, on
   return (
     <RequestBrokerDataTable
       columns={columns}
-      items={ {{ _moduleNameCamel }} }
+      items={ users }
       filters={filters}
       renderColumn={column => (
         <TableColumn

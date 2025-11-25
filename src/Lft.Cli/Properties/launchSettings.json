@@ -1,0 +1,19 @@
+{
+  "profiles": {
+    "Gen CRUD PhoneType": {
+      "commandName": "Project",
+      "commandLineArgs": "gen crud PhoneType",
+      "workingDirectory": "/Users/migueljosuecruzescalante/Documents/Lft"
+    },
+    "Gen CRUD User": {
+      "commandName": "Project",
+      "commandLineArgs": "gen crud User",
+      "workingDirectory": "/Users/migueljosuecruzescalante/Documents/Lft"
+    },
+    "Gen CRUD (dry-run)": {
+      "commandName": "Project",
+      "commandLineArgs": "gen crud TestEntity --dry-run",
+      "workingDirectory": "/Users/migueljosuecruzescalante/Documents/Lft"
+    }
+  }
+}

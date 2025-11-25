@@ -26,8 +26,8 @@ steps:
     idempotent: true
     parameters:
       queryType: "CodePattern"
-      queryPattern: "{{ _moduleName }}: '/{{ _routeModuleName }}'"
-    template: "{{ _moduleName }}: '/{{ _routeModuleName }}',"
+      queryPattern: "{{ _moduleNameCamel }}: '/{{ _routeModuleName }}'"
+    template: "{{ _moduleNameCamel }}: '/{{ _routeModuleName }}',"
     createFile: true
     createFileSource: resources/app/routing/routing.liquid
 
@@ -40,7 +40,7 @@ steps:
     idempotent: true
     parameters:
       queryType: "CodePattern"
-      queryPattern: "{{ _moduleName }}:"
+      queryPattern: "{{ _moduleNameCamel }}:"
     source: resources/app/routing/routing_paths.liquid
     createFile: true
     createFileSource: resources/app/routing/routing.liquid
@@ -54,7 +54,7 @@ steps:
     idempotent: true
     parameters:
       queryType: "CodePattern"
-      queryPattern: "key: '{{ _modelName }}'"
+      queryPattern: "key: '{{ _modelNameCamel }}'"
     source: resources/app/routing/use_navigation_item.liquid
     createFile: true
     createFileSource: resources/app/routing/use_navigation.liquid
@@ -68,7 +68,7 @@ steps:
     idempotent: true
     parameters:
       queryType: "CodePattern"
-      queryPattern: "key: '{{ _modelName }}'"
+      queryPattern: "key: '{{ _modelNameCamel }}'"
     source: resources/app/routing/use_setup_create_item.liquid
     createFile: true
     createFileSource: resources/app/routing/use_setup_create.liquid
@@ -82,9 +82,9 @@ steps:
     idempotent: true
     parameters:
       queryType: "CodePattern"
-      queryPattern: "{{ _modelName }}: () => navigate"
+      queryPattern: "{{ _modelNameCamel }}: () => navigate"
       argumentIndex: 2
-    template: "{{ _modelName }}: () => navigate(RoutePaths.{{ _moduleName }}.create()),"
+    template: "{{ _modelNameCamel }}: () => navigate(RoutePaths.{{ _moduleNameCamel }}.create()),"
     createFile: true
     createFileSource: resources/app/routing/use_setup_create.liquid
 

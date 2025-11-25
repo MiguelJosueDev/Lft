@@ -19,12 +19,12 @@ class {{ _ModuleName }}Client extends {{ _MainModuleName }}SDK.{{ _ModuleName }}
 const {{ _ModuleName }}Client = {{ _MainModuleName }}SDK.{{ _ModuleName }}Client;
 {%- endif %}
 
-export const {{ _ModuleName }}Service = new (ReactiveService('{{ _moduleName }}', {{ _ModuleName }}Client, {
+export const {{ _ModuleName }}Service = new (ReactiveService('{{ _moduleNameCamel }}', {{ _ModuleName }}Client, {
   recursive: true,
   recurseDepth: 2,
 }))({{ _MainModuleName }}Config);
 
-export const {{ _ModuleName }}Reactor = {{ _ModuleName }}Service.reactor('{{ _moduleName }}Reactor', {
+export const {{ _ModuleName }}Reactor = {{ _ModuleName }}Service.reactor('{{ _moduleNameCamel }}Reactor', {
   success: (response, services, db) => {
     const { source, args, payload } = response;
 
@@ -33,47 +33,47 @@ export const {{ _ModuleName }}Reactor = {{ _ModuleName }}Service.reactor('{{ _mo
       case {{ _ModuleName }}Service.query{{ _ModuleName }}: {
         const { values, totalCount } = payload;
 
-        db.{{ _moduleName }}.clear();
+        db.{{ _moduleNameCamel }}.clear();
         setTotalResults(source.action, totalCount);
 
-        return db.{{ _moduleName }}.bulkAdd(values);
+        return db.{{ _moduleNameCamel }}.bulkAdd(values);
       }
 {%- endif %}
 
       case {{ _ModuleName }}Service.get{{ _ModelName }}:
-        return db.{{ _moduleName }}.put(payload);
+        return db.{{ _moduleNameCamel }}.put(payload);
 
       case {{ _ModuleName }}Service.create{{ _ModelName }}:
-        services.alerts.actionSuccess(`{{ _ModelName }} added successfully`, '{{ _moduleName }}', response);
-        return db.{{ _moduleName }}.add(payload);
+        services.alerts.actionSuccess(`{{ _ModelName }} added successfully`, '{{ _moduleNameCamel }}', response);
+        return db.{{ _moduleNameCamel }}.add(payload);
 
       case {{ _ModuleName }}Service.update{{ _ModelName }}:
-        services.alerts.actionSuccess(`{{ _ModelName }} updated successfully`, '{{ _moduleName }}', response);
-        return db.{{ _moduleName }}.put(payload);
+        services.alerts.actionSuccess(`{{ _ModelName }} updated successfully`, '{{ _moduleNameCamel }}', response);
+        return db.{{ _moduleNameCamel }}.put(payload);
 
       case {{ _ModuleName }}Service.delete{{ _ModelName }}:
-        services.alerts.actionSuccess(`{{ _ModelName }} deleted successfully`, '{{ _moduleName }}', response);
-        return db.{{ _moduleName }}.delete(args[0]);
+        services.alerts.actionSuccess(`{{ _ModelName }} deleted successfully`, '{{ _moduleNameCamel }}', response);
+        return db.{{ _moduleNameCamel }}.delete(args[0]);
     }
   },
   error: (response, services) => {
     switch (response.source) {
         {%- if isMql %}
       case {{ _ModuleName }}Service.query{{ _ModuleName }}:
-        return services.alerts.actionError(`Failed to fetch {{ _ModuleName }}`, '{{ _moduleName }}', response);
+        return services.alerts.actionError(`Failed to fetch {{ _ModuleName }}`, '{{ _moduleNameCamel }}', response);
         {%- endif %}
 
       case {{ _ModuleName }}Service.get{{ _ModelName }}:
-        return services.alerts.actionError(`Failed to fetch {{ _ModelName }} details`, '{{ _moduleName }}', response);
+        return services.alerts.actionError(`Failed to fetch {{ _ModelName }} details`, '{{ _moduleNameCamel }}', response);
 
       case {{ _ModuleName }}Service.create{{ _ModelName }}:
-        return services.alerts.actionError(`Failed to create {{ _ModelName }}`, '{{ _moduleName }}', response);
+        return services.alerts.actionError(`Failed to create {{ _ModelName }}`, '{{ _moduleNameCamel }}', response);
 
       case {{ _ModuleName }}Service.update{{ _ModelName }}:
-        return services.alerts.actionError(`Failed to update {{ _ModelName }}`, '{{ _moduleName }}', response);
+        return services.alerts.actionError(`Failed to update {{ _ModelName }}`, '{{ _moduleNameCamel }}', response);
 
       case {{ _ModuleName }}Service.delete{{ _ModelName }}:
-        return services.alerts.actionError(`Failed to delete {{ _ModelName }}`, '{{ _moduleName }}', response);
+        return services.alerts.actionError(`Failed to delete {{ _ModelName }}`, '{{ _moduleNameCamel }}', response);
     }
   },
 });

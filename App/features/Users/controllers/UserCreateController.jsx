@@ -2,19 +2,19 @@ import { useState } from 'react';
 import { Button } from '@heroui/react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
 import { SaveButton, withModalController } from '@livefree/react-ui';
-import { {{ _ModelName }}Form } from 'features/{{ _moduleNameCamel }}/components';
+import { UserForm } from 'features/users/components';
 
-const {{ _ModelName }}CreateController = Reactive(
+const UserCreateController = Reactive(
   ({ services, monitors, onSuccess, onClose }) => {
     const [form, setForm] = useState({});
 
-    useReactorOnSuccess(services.{{ _moduleNameCamel }}, 'create{{ _ModelName }}', payload => {
+    useReactorOnSuccess(services.users, 'createUser', payload => {
       onSuccess && onSuccess(payload);
     });
 
     return (
       <div className="flex flex-col gap-2">
-        <{{ _ModelName }}Form onChange={setForm} />
+        <UserForm onChange={setForm} />
         <div className="flex justify-between gap-2">
           <Button size="sm" onPress={() => onClose && onClose()} color="default" variant="light">
             Cancel
@@ -23,22 +23,22 @@ const {{ _ModelName }}CreateController = Reactive(
             size="sm"
             isDisabled={!form.isValid}
             onPress={() =>
-              services.{{ _moduleNameCamel }}.create{{ _ModelName }}(form.data)
+              services.users.createUser(form.data)
             }
-            isLoading={monitors.create{{ _ModelName }}.executing}
+            isLoading={monitors.createUser.executing}
           />
         </div>
       </div>
     );
   },
   {
-    name: '{{ _ModelName }}CreateController',
-    monitors: services => [services.{{ _moduleNameCamel }}.create{{ _ModelName }}],
+    name: 'UserCreateController',
+    monitors: services => [services.users.createUser],
   },
 );
 
-{{ _ModelName }}CreateController.Modal = withModalController(({ onSuccess, ...props }) => (
-  <{{ _ModelName }}CreateController onSuccess={onSuccess} {...props} />
+UserCreateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <UserCreateController onSuccess={onSuccess} {...props} />
 ));
 
-export { {{ _ModelName }}CreateController };
+export { UserCreateController };

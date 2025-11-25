@@ -1,35 +1,35 @@
 import { useState } from 'react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
 import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
-import { {{ _ModelName }}Form } from 'features/{{ _moduleName }}/components';
+import { {{ _ModelName }}Form } from 'features/{{ _moduleNameCamel }}/components';
 
 const {{ _ModelName }}UpdateController = Reactive(
-  ({ services, data, monitors, {{ _modelName }}Id, onSuccess, onClose }) => {
-    const { {{ _modelName }} } = data;
+  ({ services, data, monitors, {{ _modelNameCamel }}Id, onSuccess, onClose }) => {
+    const { {{ _modelNameCamel }} } = data;
     const [form, setForm] = useState({});
 
-    useReactorOnSuccess(services.{{ _moduleName }}, 'update{{ _ModelName }}', payload => {
+    useReactorOnSuccess(services.{{ _moduleNameCamel }}, 'update{{ _ModelName }}', payload => {
       onSuccess && onSuccess(payload);
     });
 
-    useReactorOnSuccess(services.{{ _moduleName }}, 'delete{{ _ModelName }}', () => {
+    useReactorOnSuccess(services.{{ _moduleNameCamel }}, 'delete{{ _ModelName }}', () => {
       onClose && onClose();
     });
 
     return (
       <div className="flex flex-col gap-2">
-        <{{ _ModelName }}Form {{ _modelName }}={ {{ _modelName }} } onChange={setForm} />
+        <{{ _ModelName }}Form {{ _modelNameCamel }}={ {{ _modelNameCamel }} } onChange={setForm} />
         <div className="flex justify-between gap-2">
           <DeleteButton
             size="sm"
-            onPress={() => services.{{ _moduleName }}.delete{{ _ModelName }}({{ _modelName }}Id)}
+            onPress={() => services.{{ _moduleNameCamel }}.delete{{ _ModelName }}({{ _modelNameCamel }}Id)}
             isLoading={monitors.delete{{ _ModelName }}.executing}
           />
           <SaveButton
             size="sm"
             isDisabled={!form.isValid}
             onPress={() =>
-              services.{{ _moduleName }}.update{{ _ModelName }}({{ _modelName }}Id, form.data)
+              services.{{ _moduleNameCamel }}.update{{ _ModelName }}({{ _modelNameCamel }}Id, form.data)
             }
             isLoading={monitors.update{{ _ModelName }}.executing}
           />
@@ -39,23 +39,23 @@ const {{ _ModelName }}UpdateController = Reactive(
   },
   {
     name: '{{ _ModelName }}UpdateController',
-    sync: (services, { {{ _modelName }}Id }) => [
+    sync: (services, { {{ _modelNameCamel }}Id }) => [
       {
-        execute: () => services.{{ _moduleName }}.get{{ _ModelName }}({{ _modelName }}Id),
-        deps: [{{ _modelName }}Id],
+        execute: () => services.{{ _moduleNameCamel }}.get{{ _ModelName }}({{ _modelNameCamel }}Id),
+        deps: [{{ _modelNameCamel }}Id],
       },
     ],
-    queries: ({ {{ _modelName }}Id }) => [
+    queries: ({ {{ _modelNameCamel }}Id }) => [
       {
-        name: '{{ _modelName }}',
+        name: '{{ _modelNameCamel }}',
         defaultValue: {},
-        execute: db => db.{{ _moduleName }}.get({{ _modelName }}Id),
-        deps: [{{ _modelName }}Id],
+        execute: db => db.{{ _moduleNameCamel }}.get({{ _modelNameCamel }}Id),
+        deps: [{{ _modelNameCamel }}Id],
       },
     ],
     monitors: services => [
-      services.{{ _moduleName }}.update{{ _ModelName }},
-      services.{{ _moduleName }}.delete{{ _ModelName }},
+      services.{{ _moduleNameCamel }}.update{{ _ModelName }},
+      services.{{ _moduleNameCamel }}.delete{{ _ModelName }},
     ],
   },
 );

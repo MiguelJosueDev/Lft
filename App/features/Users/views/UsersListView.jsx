@@ -1,22 +1,22 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
 import { useSyncCreateItem } from '@livefree/applications';
-import { {{ _ModuleName }}ListController } from 'features/{{ _moduleNameCamel }}/controllers';
+import { UsersListController } from 'features/users/controllers';
 import { RoutePaths } from 'features/routing';
 
-export const {{ _ModuleName }}ListView = () => {
+export const UsersListView = () => {
   const navigate = useNavigate();
-  useSyncCreateItem('{{ _modelNameCamel }}');
+  useSyncCreateItem('user');
 
   return (
     <>
       <div className="flex flex-row justify-between mb-4">
         <Breadcrumbs className="content-center">
-          <BreadcrumbItem isDisabled>{{ _MainModuleName }}</BreadcrumbItem>
-          <BreadcrumbItem>{{ _ModuleName }}</BreadcrumbItem>
+          <BreadcrumbItem isDisabled>Generated</BreadcrumbItem>
+          <BreadcrumbItem>Users</BreadcrumbItem>
         </Breadcrumbs>
       </div>
-      <{{ _ModuleName }}ListController onSelect={item => navigate(RoutePaths.{{ _moduleNameCamel }}.update(item.id))} />
+      <UsersListController onSelect={item => navigate(RoutePaths.users.update(item.id))} />
       <Outlet />
     </>
   );

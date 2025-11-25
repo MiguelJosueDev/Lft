@@ -1,0 +1,503 @@
+﻿{
+  App/core/services/UsersService.js:
+import { ReactiveService } from '@livefree/reactive';
+import { GeneratedSDK } from 'sdk/GeneratedSDK';
+import { GeneratedConfig } from 'core/config';
+const UsersClient = GeneratedSDK.UsersClient;
+
+export const UsersService = new (ReactiveService('users', UsersClient, {
+  recursive: true,
+  recurseDepth: 2,
+}))(GeneratedConfig);
+
+export const UsersReactor = UsersService.reactor('usersReactor', {
+  success: (response, services, db) => {
+    const { source, args, payload } = response;
+
+    switch (source) {
+
+      case UsersService.getUser:
+        return db.users.put(payload);
+
+      case UsersService.createUser:
+        services.alerts.actionSuccess(`User added successfully`, 'users', response);
+        return db.users.add(payload);
+
+      case UsersService.updateUser:
+        services.alerts.actionSuccess(`User updated successfully`, 'users', response);
+        return db.users.put(payload);
+
+      case UsersService.deleteUser:
+        services.alerts.actionSuccess(`User deleted successfully`, 'users', response);
+        return db.users.delete(args[0]);
+    }
+  },
+  error: (response, services) => {
+    switch (response.source) {
+
+      case UsersService.getUser:
+        return services.alerts.actionError(`Failed to fetch User details`, 'users', response);
+
+      case UsersService.createUser:
+        return services.alerts.actionError(`Failed to create User`, 'users', response);
+
+      case UsersService.updateUser:
+        return services.alerts.actionError(`Failed to update User`, 'users', response);
+
+      case UsersService.deleteUser:
+        return services.alerts.actionError(`Failed to delete User`, 'users', response);
+    }
+  },
+});
+,
+  App/features/routing/routers/UsersRouter.jsx:
+import { Route, Routes } from 'react-router-dom';
+import {
+  UsersListView,
+  UserCreateView,
+  UserUpdateView } from 'features/users/views';
+import { WithParams } from 'features/routing';
+
+export const UsersRouter = () => (
+  <Routes>
+    <Route path="/" element={<UsersListView />}>
+      <Route path="create" element={<UserCreateView />} />
+      <Route path=":userId/update" element={<WithParams element={ UserUpdateView } />} />
+    </Route>
+  </Routes>
+);
+,
+  App/features/users/components/index.js:
+export * from './UsersList';
+export * from './UserForm';
+,
+  App/features/users/components/UserForm.jsx:
+import { Uniformly } from '@livefree/uniformly';
+import { FieldStatus, TextField } from '@livefree/react-ui';
+
+export const UserForm = ({ user = {}, onChange }) => (
+  <Uniformly
+    className="flex flex-col flex-grow gap-2"
+    onChange={onChange}
+  >
+  </Uniformly>
+);
+,
+  App/features/users/components/UsersList.jsx:
+import { useCallback } from 'react';
+import { TableRow, TableColumn, TableCell } from '@heroui/react';;
+import { RequestBrokerDataTable } from '@livefree/react-ui';
+
+const columns = [
+  { propertyName: 'id', name: 'Id', isSortable: true },
+];
+
+export const UsersList = ({ users = [], filters, onSelect }) => {
+  const renderCell = useCallback((row, columnKey) => {
+    const cellValue = row[columnKey];
+
+    switch (columnKey) {
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  return (
+    <RequestBrokerDataTable
+      columns={columns}
+      items={ users }
+      filters={filters}
+      renderColumn={column => (
+        <TableColumn
+          key={column.propertyName}
+          allowsSorting={column?.isSortable}
+        >
+          {column.name}
+        </TableColumn>
+      )}
+      renderRow={row => (
+        <TableRow key={row.id} onClick={() => onSelect(row)}>
+          {columnKey => <TableCell key={columnKey}>{renderCell(row, columnKey)}</TableCell>}
+        </TableRow>
+      )}
+      withPagination
+      withSorting
+      withColumnSelection
+    />
+  );
+};
+,
+  App/features/users/controllers/index.js:
+export * from './UsersListController';
+export * from './UserCreateController';
+export * from './UserUpdateController';
+,
+  App/features/users/controllers/UserCreateController.jsx:
+import { useState } from 'react';
+import { Button } from '@heroui/react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { SaveButton, withModalController } from '@livefree/react-ui';
+import { UserForm } from 'features/users/components';
+
+const UserCreateController = Reactive(
+  ({ services, monitors, onSuccess, onClose }) => {
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.users, 'createUser', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <UserForm onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <Button size="sm" onPress={() => onClose && onClose()} color="default" variant="light">
+            Cancel
+          </Button>
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.users.createUser(form.data)
+            }
+            isLoading={monitors.createUser.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'UserCreateController',
+    monitors: services => [services.users.createUser],
+  },
+);
+
+UserCreateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <UserCreateController onSuccess={onSuccess} {...props} />
+));
+
+export { UserCreateController };
+,
+  App/features/users/controllers/UsersListController.jsx:
+import { useCallback } from 'react';
+import { Reactive } from '@livefree/reactive';
+import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
+import { UsersList } from 'features/users/components';
+
+export const UsersListController = Reactive(
+  ({ data, services, monitors, db, onSelect }) => {
+    const { users } = data;
+
+    const handleExecute = useCallback((action, metadata) => {
+      action(metadata);
+    }, []);
+
+    return (
+      <RequestBroker
+        actionKey="queryUsers"
+        action={services.users.queryUsers}
+        defaultSorting={ { propertyName: 'id', sortType: false } }
+        defaultPaging={ { skip: 0, take: 50, page: 1, totalCount: 0 } }
+        isExecuting={monitors.queryUsers.executing}
+        skipInitial={() => db.users.toCollection().count()}
+        onExecute={handleExecute}
+      >
+        <UsersList
+          users={ users }
+          isExecuting={monitors.queryUsers.executing}
+          onSelect={item => onSelect && onSelect(item)}
+        />
+      </RequestBroker>
+    );
+  },
+  {
+    name: 'UsersListController',
+    queries: (_, services) => [
+      {
+        name: 'users',
+        execute: db =>
+          queryDexieWithMetadata(db, services.users.queryUsers.action, () => db.users, {
+            sorting: true,
+          }),
+        deps: [],
+      },
+    ],
+    monitors: services => [services.users.queryUsers],
+  },
+);
+,
+  App/features/users/controllers/UserUpdateController.jsx:
+import { useState } from 'react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
+import { UserForm } from 'features/users/components';
+
+const UserUpdateController = Reactive(
+  ({ services, data, monitors, userId, onSuccess, onClose }) => {
+    const { user } = data;
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.users, 'updateUser', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    useReactorOnSuccess(services.users, 'deleteUser', () => {
+      onClose && onClose();
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <UserForm user={ user } onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <DeleteButton
+            size="sm"
+            onPress={() => services.users.deleteUser(userId)}
+            isLoading={monitors.deleteUser.executing}
+          />
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.users.updateUser(userId, form.data)
+            }
+            isLoading={monitors.updateUser.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'UserUpdateController',
+    sync: (services, { userId }) => [
+      {
+        execute: () => services.users.getUser(userId),
+        deps: [userId],
+      },
+    ],
+    queries: ({ userId }) => [
+      {
+        name: 'user',
+        defaultValue: {},
+        execute: db => db.users.get(userId),
+        deps: [userId],
+      },
+    ],
+    monitors: services => [
+      services.users.updateUser,
+      services.users.deleteUser,
+    ],
+  },
+);
+
+UserUpdateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <UserUpdateController onSuccess={onSuccess} {...props} />
+));
+
+export { UserUpdateController };
+,
+  App/features/users/views/index.js:
+export * from './UsersListView';
+export * from './UserCreateView';
+export * from './UserUpdateView';
+,
+  App/features/users/views/UserCreateView.jsx:
+import { UserCreateController } from 'features/users/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const UserCreateView = () => {
+  const navigate = useNavigate();
+
+  return (
+    <UserCreateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Create User"
+      onSuccess={() => navigate(RoutePaths.users.list())}
+      onClose={() => navigate(RoutePaths.users.list())}
+    />
+  );
+};
+,
+  App/features/users/views/UsersListView.jsx:
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
+import { useSyncCreateItem } from '@livefree/applications';
+import { UsersListController } from 'features/users/controllers';
+import { RoutePaths } from 'features/routing';
+
+export const UsersListView = () => {
+  const navigate = useNavigate();
+  useSyncCreateItem('user');
+
+  return (
+    <>
+      <div className="flex flex-row justify-between mb-4">
+        <Breadcrumbs className="content-center">
+          <BreadcrumbItem isDisabled>Generated</BreadcrumbItem>
+          <BreadcrumbItem>Users</BreadcrumbItem>
+        </Breadcrumbs>
+      </div>
+      <UsersListController onSelect={item => navigate(RoutePaths.users.update(item.id))} />
+      <Outlet />
+    </>
+  );
+};
+,
+  App/features/users/views/UserUpdateView.jsx:
+import { UserUpdateController } from 'features/users/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const UserUpdateView = ({ userId }) => {
+  const parsedId =
+    !isNaN(Number(userId)) && userId !== '' ? Number(userId) : userId;
+  const navigate = useNavigate();
+
+  return (
+    <UserUpdateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Update User"
+      userId={parsedId}
+      onSuccess={() => navigate(RoutePaths.users.list())}
+      onClose={() => navigate(RoutePaths.users.list())}
+    />
+  );
+};
+,
+  Endpoints/UsersEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IUsersEndpoint : IModelEndpoint<UserModel, long>
+{
+}
+
+public class UsersEndpoint(
+    IUsersService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<UserModel, IUsersService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IUsersEndpoint
+{
+
+}
+,
+  Entities/UserEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: User - Review Entity Configuration
+[Table("User", Schema = "dbo")]
+public class UserEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  Interfaces/IUsersService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Models;
+
+namespace Lft.Generated.Interfaces;
+
+public interface IUsersService : IModelService<UserModel, long>
+{
+
+}
+,
+  Models/UserModel.cs:
+namespace Lft.Generated.Models;
+
+public class UserModel
+{
+    public long Id { get; set; }
+
+}
+,
+  Repositories/UsersRepository.cs:
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace Lft.Generated.Repositories.SqlServer;
+
+public interface IUsersRepository : IRepository<UserModel, long>
+{
+
+}
+
+public class UsersRepository(
+    IConnectionFactory connectionFactory,
+    IMapper mapper,
+    ILogger<UserEntity> logger,
+    IUnitOfWork unitOfWork)
+    : BaseRepository<UserModel, UserEntity, long>(connectionFactory, mapper, logger, unitOfWork),
+        IUsersRepository
+{
+}
+,
+  Routes/UsersRoutes.cs:
+using LiveFree.Core.AspNetCore.Extensions;
+using LiveFree.Core.AspNetCore.Routing;
+using Lft.Generated.Api.Endpoints;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Lft.Generated.Api.Routes;
+
+public static class UsersRoutes
+{
+    public static void MapUsersRoutes(
+        this WebApplication app,
+        string basePrefix,
+        string prefix = "")
+    {
+        var group = app
+            .MapModelRoutes<UserModel, IUsersEndpoint, long>(basePrefix, prefix, "Users")
+            .AddGet()
+            .AddCreate()
+            .AddUpdate()
+            .AddDelete()
+            .Builder
+            .RequireAuthorization();
+
+    }
+}
+,
+  Services/UsersService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class UsersService(
+    IUsersRepository repository,
+    ILogger<UserModel> logger)
+    : BaseModelService<IUsersRepository, UserModel, long>(repository, logger), IUsersService
+{
+}
+
+}

@@ -65,7 +65,7 @@ steps:
     action: insert-before
     token: "{{ app-inject-token }} - Tables -"
     def: app-src
-    template: "{{ _moduleName }}: ['&id'],"
+    template: "{{ _moduleNameCamel }}: ['&id'],"
     output: core/services/ReactiveConfig.js
     createFile: true
     createFileSource: resources/app/reactive/reactive_config.liquid

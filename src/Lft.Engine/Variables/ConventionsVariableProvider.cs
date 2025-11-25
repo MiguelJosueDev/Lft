@@ -19,14 +19,16 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         ctx.Set("_EntityPlural", entity.Pluralize());                // FundingTypes (using Humanizer)
         ctx.Set("_EntityKebab", entity.Kebaberize());                // funding-type (using Humanizer)
 
-        // Model variations (same as entity for simple case)
-        // Note: _modelName and _moduleName are computed in vars.yml using Liquid filters
-        // to avoid case-insensitive collision in Fluid
-        ctx.Set("_ModelName", entity);                               // FundingType (PascalCase)
+        // Model variations
+        // Fluid uses case-insensitive variable lookup, so we use distinct suffixes
+        // to avoid collision between PascalCase and camelCase versions
+        ctx.Set("_ModelName", entity);                               // FundingType (PascalCase) - for class names
+        ctx.Set("_modelNameCamel", entity.Camelize());               // fundingType (camelCase) - for JS variables
 
         // Module variations (plural)
         var plural = entity.Pluralize();                             // Use Humanizer for proper pluralization
-        ctx.Set("_ModuleName", plural);                              // FundingTypes
+        ctx.Set("_ModuleName", plural);                              // FundingTypes (PascalCase) - for class names
+        ctx.Set("_moduleNameCamel", plural.Camelize());              // fundingTypes (camelCase) - for JS services
 
         // Base namespace
         ctx.Set("BaseNamespaceName", "Lft.Generated");

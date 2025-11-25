@@ -1,10 +1,10 @@
-import { {{ _ModelName }}UpdateController } from 'features/{{ _moduleName }}/controllers';
+import { {{ _ModelName }}UpdateController } from 'features/{{ _moduleNameCamel }}/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
 
-export const {{ _ModelName }}UpdateView = ({ {{ _modelName }}Id }) => {
+export const {{ _ModelName }}UpdateView = ({ {{ _modelNameCamel }}Id }) => {
   const parsedId =
-    !isNaN(Number({{ _modelName }}Id)) && {{ _modelName }}Id !== '' ? Number({{ _modelName }}Id) : {{ _modelName }}Id;
+    !isNaN(Number({{ _modelNameCamel }}Id)) && {{ _modelNameCamel }}Id !== '' ? Number({{ _modelNameCamel }}Id) : {{ _modelNameCamel }}Id;
   const navigate = useNavigate();
 
   return (
@@ -12,9 +12,9 @@ export const {{ _ModelName }}UpdateView = ({ {{ _modelName }}Id }) => {
       isOpen={true}
       isDismissable={false}
       title="Update {{ _ModelName }}"
-      {{ _modelName }}Id={parsedId}
-      onSuccess={() => navigate(RoutePaths.{{ _moduleName }}.list())}
-      onClose={() => navigate(RoutePaths.{{ _moduleName }}.list())}
+      {{ _modelNameCamel }}Id={parsedId}
+      onSuccess={() => navigate(RoutePaths.{{ _moduleNameCamel }}.list())}
+      onClose={() => navigate(RoutePaths.{{ _moduleNameCamel }}.list())}
     />
   );
 };

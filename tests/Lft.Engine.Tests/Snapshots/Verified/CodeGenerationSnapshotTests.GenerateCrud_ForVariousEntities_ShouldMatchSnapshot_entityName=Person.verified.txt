@@ -1,0 +1,503 @@
+﻿{
+  App/core/services/PeopleService.js:
+import { ReactiveService } from '@livefree/reactive';
+import { GeneratedSDK } from 'sdk/GeneratedSDK';
+import { GeneratedConfig } from 'core/config';
+const PeopleClient = GeneratedSDK.PeopleClient;
+
+export const PeopleService = new (ReactiveService('people', PeopleClient, {
+  recursive: true,
+  recurseDepth: 2,
+}))(GeneratedConfig);
+
+export const PeopleReactor = PeopleService.reactor('peopleReactor', {
+  success: (response, services, db) => {
+    const { source, args, payload } = response;
+
+    switch (source) {
+
+      case PeopleService.getPerson:
+        return db.people.put(payload);
+
+      case PeopleService.createPerson:
+        services.alerts.actionSuccess(`Person added successfully`, 'people', response);
+        return db.people.add(payload);
+
+      case PeopleService.updatePerson:
+        services.alerts.actionSuccess(`Person updated successfully`, 'people', response);
+        return db.people.put(payload);
+
+      case PeopleService.deletePerson:
+        services.alerts.actionSuccess(`Person deleted successfully`, 'people', response);
+        return db.people.delete(args[0]);
+    }
+  },
+  error: (response, services) => {
+    switch (response.source) {
+
+      case PeopleService.getPerson:
+        return services.alerts.actionError(`Failed to fetch Person details`, 'people', response);
+
+      case PeopleService.createPerson:
+        return services.alerts.actionError(`Failed to create Person`, 'people', response);
+
+      case PeopleService.updatePerson:
+        return services.alerts.actionError(`Failed to update Person`, 'people', response);
+
+      case PeopleService.deletePerson:
+        return services.alerts.actionError(`Failed to delete Person`, 'people', response);
+    }
+  },
+});
+,
+  App/features/people/components/index.js:
+export * from './PeopleList';
+export * from './PersonForm';
+,
+  App/features/people/components/PeopleList.jsx:
+import { useCallback } from 'react';
+import { TableRow, TableColumn, TableCell } from '@heroui/react';;
+import { RequestBrokerDataTable } from '@livefree/react-ui';
+
+const columns = [
+  { propertyName: 'id', name: 'Id', isSortable: true },
+];
+
+export const PeopleList = ({ people = [], filters, onSelect }) => {
+  const renderCell = useCallback((row, columnKey) => {
+    const cellValue = row[columnKey];
+
+    switch (columnKey) {
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  return (
+    <RequestBrokerDataTable
+      columns={columns}
+      items={ people }
+      filters={filters}
+      renderColumn={column => (
+        <TableColumn
+          key={column.propertyName}
+          allowsSorting={column?.isSortable}
+        >
+          {column.name}
+        </TableColumn>
+      )}
+      renderRow={row => (
+        <TableRow key={row.id} onClick={() => onSelect(row)}>
+          {columnKey => <TableCell key={columnKey}>{renderCell(row, columnKey)}</TableCell>}
+        </TableRow>
+      )}
+      withPagination
+      withSorting
+      withColumnSelection
+    />
+  );
+};
+,
+  App/features/people/components/PersonForm.jsx:
+import { Uniformly } from '@livefree/uniformly';
+import { FieldStatus, TextField } from '@livefree/react-ui';
+
+export const PersonForm = ({ person = {}, onChange }) => (
+  <Uniformly
+    className="flex flex-col flex-grow gap-2"
+    onChange={onChange}
+  >
+  </Uniformly>
+);
+,
+  App/features/people/controllers/index.js:
+export * from './PeopleListController';
+export * from './PersonCreateController';
+export * from './PersonUpdateController';
+,
+  App/features/people/controllers/PeopleListController.jsx:
+import { useCallback } from 'react';
+import { Reactive } from '@livefree/reactive';
+import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
+import { PeopleList } from 'features/people/components';
+
+export const PeopleListController = Reactive(
+  ({ data, services, monitors, db, onSelect }) => {
+    const { people } = data;
+
+    const handleExecute = useCallback((action, metadata) => {
+      action(metadata);
+    }, []);
+
+    return (
+      <RequestBroker
+        actionKey="queryPeople"
+        action={services.people.queryPeople}
+        defaultSorting={ { propertyName: 'id', sortType: false } }
+        defaultPaging={ { skip: 0, take: 50, page: 1, totalCount: 0 } }
+        isExecuting={monitors.queryPeople.executing}
+        skipInitial={() => db.people.toCollection().count()}
+        onExecute={handleExecute}
+      >
+        <PeopleList
+          people={ people }
+          isExecuting={monitors.queryPeople.executing}
+          onSelect={item => onSelect && onSelect(item)}
+        />
+      </RequestBroker>
+    );
+  },
+  {
+    name: 'PeopleListController',
+    queries: (_, services) => [
+      {
+        name: 'people',
+        execute: db =>
+          queryDexieWithMetadata(db, services.people.queryPeople.action, () => db.people, {
+            sorting: true,
+          }),
+        deps: [],
+      },
+    ],
+    monitors: services => [services.people.queryPeople],
+  },
+);
+,
+  App/features/people/controllers/PersonCreateController.jsx:
+import { useState } from 'react';
+import { Button } from '@heroui/react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { SaveButton, withModalController } from '@livefree/react-ui';
+import { PersonForm } from 'features/people/components';
+
+const PersonCreateController = Reactive(
+  ({ services, monitors, onSuccess, onClose }) => {
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.people, 'createPerson', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <PersonForm onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <Button size="sm" onPress={() => onClose && onClose()} color="default" variant="light">
+            Cancel
+          </Button>
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.people.createPerson(form.data)
+            }
+            isLoading={monitors.createPerson.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'PersonCreateController',
+    monitors: services => [services.people.createPerson],
+  },
+);
+
+PersonCreateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <PersonCreateController onSuccess={onSuccess} {...props} />
+));
+
+export { PersonCreateController };
+,
+  App/features/people/controllers/PersonUpdateController.jsx:
+import { useState } from 'react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
+import { PersonForm } from 'features/people/components';
+
+const PersonUpdateController = Reactive(
+  ({ services, data, monitors, personId, onSuccess, onClose }) => {
+    const { person } = data;
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.people, 'updatePerson', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    useReactorOnSuccess(services.people, 'deletePerson', () => {
+      onClose && onClose();
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <PersonForm person={ person } onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <DeleteButton
+            size="sm"
+            onPress={() => services.people.deletePerson(personId)}
+            isLoading={monitors.deletePerson.executing}
+          />
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.people.updatePerson(personId, form.data)
+            }
+            isLoading={monitors.updatePerson.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'PersonUpdateController',
+    sync: (services, { personId }) => [
+      {
+        execute: () => services.people.getPerson(personId),
+        deps: [personId],
+      },
+    ],
+    queries: ({ personId }) => [
+      {
+        name: 'person',
+        defaultValue: {},
+        execute: db => db.people.get(personId),
+        deps: [personId],
+      },
+    ],
+    monitors: services => [
+      services.people.updatePerson,
+      services.people.deletePerson,
+    ],
+  },
+);
+
+PersonUpdateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <PersonUpdateController onSuccess={onSuccess} {...props} />
+));
+
+export { PersonUpdateController };
+,
+  App/features/people/views/index.js:
+export * from './PeopleListView';
+export * from './PersonCreateView';
+export * from './PersonUpdateView';
+,
+  App/features/people/views/PeopleListView.jsx:
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
+import { useSyncCreateItem } from '@livefree/applications';
+import { PeopleListController } from 'features/people/controllers';
+import { RoutePaths } from 'features/routing';
+
+export const PeopleListView = () => {
+  const navigate = useNavigate();
+  useSyncCreateItem('person');
+
+  return (
+    <>
+      <div className="flex flex-row justify-between mb-4">
+        <Breadcrumbs className="content-center">
+          <BreadcrumbItem isDisabled>Generated</BreadcrumbItem>
+          <BreadcrumbItem>People</BreadcrumbItem>
+        </Breadcrumbs>
+      </div>
+      <PeopleListController onSelect={item => navigate(RoutePaths.people.update(item.id))} />
+      <Outlet />
+    </>
+  );
+};
+,
+  App/features/people/views/PersonCreateView.jsx:
+import { PersonCreateController } from 'features/people/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const PersonCreateView = () => {
+  const navigate = useNavigate();
+
+  return (
+    <PersonCreateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Create Person"
+      onSuccess={() => navigate(RoutePaths.people.list())}
+      onClose={() => navigate(RoutePaths.people.list())}
+    />
+  );
+};
+,
+  App/features/people/views/PersonUpdateView.jsx:
+import { PersonUpdateController } from 'features/people/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const PersonUpdateView = ({ personId }) => {
+  const parsedId =
+    !isNaN(Number(personId)) && personId !== '' ? Number(personId) : personId;
+  const navigate = useNavigate();
+
+  return (
+    <PersonUpdateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Update Person"
+      personId={parsedId}
+      onSuccess={() => navigate(RoutePaths.people.list())}
+      onClose={() => navigate(RoutePaths.people.list())}
+    />
+  );
+};
+,
+  App/features/routing/routers/PeopleRouter.jsx:
+import { Route, Routes } from 'react-router-dom';
+import {
+  PeopleListView,
+  PersonCreateView,
+  PersonUpdateView } from 'features/people/views';
+import { WithParams } from 'features/routing';
+
+export const PeopleRouter = () => (
+  <Routes>
+    <Route path="/" element={<PeopleListView />}>
+      <Route path="create" element={<PersonCreateView />} />
+      <Route path=":personId/update" element={<WithParams element={ PersonUpdateView } />} />
+    </Route>
+  </Routes>
+);
+,
+  Endpoints/PeopleEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IPeopleEndpoint : IModelEndpoint<PersonModel, long>
+{
+}
+
+public class PeopleEndpoint(
+    IPeopleService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<PersonModel, IPeopleService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IPeopleEndpoint
+{
+
+}
+,
+  Entities/PersonEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Person - Review Entity Configuration
+[Table("Person", Schema = "dbo")]
+public class PersonEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  Interfaces/IPeopleService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Models;
+
+namespace Lft.Generated.Interfaces;
+
+public interface IPeopleService : IModelService<PersonModel, long>
+{
+
+}
+,
+  Models/PersonModel.cs:
+namespace Lft.Generated.Models;
+
+public class PersonModel
+{
+    public long Id { get; set; }
+
+}
+,
+  Repositories/PeopleRepository.cs:
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace Lft.Generated.Repositories.SqlServer;
+
+public interface IPeopleRepository : IRepository<PersonModel, long>
+{
+
+}
+
+public class PeopleRepository(
+    IConnectionFactory connectionFactory,
+    IMapper mapper,
+    ILogger<PersonEntity> logger,
+    IUnitOfWork unitOfWork)
+    : BaseRepository<PersonModel, PersonEntity, long>(connectionFactory, mapper, logger, unitOfWork),
+        IPeopleRepository
+{
+}
+,
+  Routes/PeopleRoutes.cs:
+using LiveFree.Core.AspNetCore.Extensions;
+using LiveFree.Core.AspNetCore.Routing;
+using Lft.Generated.Api.Endpoints;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Lft.Generated.Api.Routes;
+
+public static class PeopleRoutes
+{
+    public static void MapPeopleRoutes(
+        this WebApplication app,
+        string basePrefix,
+        string prefix = "")
+    {
+        var group = app
+            .MapModelRoutes<PersonModel, IPeopleEndpoint, long>(basePrefix, prefix, "People")
+            .AddGet()
+            .AddCreate()
+            .AddUpdate()
+            .AddDelete()
+            .Builder
+            .RequireAuthorization();
+
+    }
+}
+,
+  Services/PeopleService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class PeopleService(
+    IPeopleRepository repository,
+    ILogger<PersonModel> logger)
+    : BaseModelService<IPeopleRepository, PersonModel, long>(repository, logger), IPeopleService
+{
+}
+
+}

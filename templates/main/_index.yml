@@ -51,59 +51,59 @@ entryPoints:
       - name: CreateIndexViews
         action: create
         source: resources/app/feature/views/index_view.liquid
-        output: App/features/{{ _moduleName }}/views/index.js
+        output: App/features/{{ _moduleNameCamel }}/views/index.js
 
       - name: CreateListViews
         action: create
         source: resources/app/feature/views/list_view.liquid
-        output: App/features/{{ _moduleName }}/views/{{ _ModuleName }}ListView.jsx
+        output: App/features/{{ _moduleNameCamel }}/views/{{ _ModuleName }}ListView.jsx
 
       - name: CreateAddViews
         action: create
         source: resources/app/feature/views/create_view.liquid
-        output: App/features/{{ _moduleName }}/views/{{ _ModelName }}CreateView.jsx
+        output: App/features/{{ _moduleNameCamel }}/views/{{ _ModelName }}CreateView.jsx
 
       - name: CreateUpdateViews
         action: create
         source: resources/app/feature/views/update_view.liquid
-        output: App/features/{{ _moduleName }}/views/{{ _ModelName }}UpdateView.jsx
+        output: App/features/{{ _moduleNameCamel }}/views/{{ _ModelName }}UpdateView.jsx
 
       # 6. Feature Controllers
       - name: CreateIndexControllers
         action: create
         source: resources/app/feature/controllers/index_controller.liquid
-        output: App/features/{{ _moduleName }}/controllers/index.js
+        output: App/features/{{ _moduleNameCamel }}/controllers/index.js
 
       - name: CreateListControllers
         action: create
         source: resources/app/feature/controllers/list_controller.liquid
-        output: App/features/{{ _moduleName }}/controllers/{{ _ModuleName }}ListController.jsx
+        output: App/features/{{ _moduleNameCamel }}/controllers/{{ _ModuleName }}ListController.jsx
 
       - name: CreateAddControllers
         action: create
         source: resources/app/feature/controllers/create_controller.liquid
-        output: App/features/{{ _moduleName }}/controllers/{{ _ModelName }}CreateController.jsx
+        output: App/features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}CreateController.jsx
 
       - name: CreateUpdateControllers
         action: create
         source: resources/app/feature/controllers/update_controller.liquid
-        output: App/features/{{ _moduleName }}/controllers/{{ _ModelName }}UpdateController.jsx
+        output: App/features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}UpdateController.jsx
 
       # 7. Feature Components
       - name: CreateIndexComponents
         action: create
         source: resources/app/feature/components/index_components.liquid
-        output: App/features/{{ _moduleName }}/components/index.js
+        output: App/features/{{ _moduleNameCamel }}/components/index.js
 
       - name: CreateListComponents
         action: create
         source: resources/app/feature/components/list.liquid
-        output: App/features/{{ _moduleName }}/components/{{ _ModuleName }}List.jsx
+        output: App/features/{{ _moduleNameCamel }}/components/{{ _ModuleName }}List.jsx
 
       - name: CreateFormComponents
         action: create
         source: resources/app/feature/components/form.liquid
-        output: App/features/{{ _moduleName }}/components/{{ _ModelName }}Form.jsx
+        output: App/features/{{ _moduleNameCamel }}/components/{{ _ModelName }}Form.jsx
 
       # 8. Reactive Services
       - name: CreateReactiveService

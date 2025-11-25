@@ -1,0 +1,503 @@
+﻿{
+  App/core/services/ProductsService.js:
+import { ReactiveService } from '@livefree/reactive';
+import { GeneratedSDK } from 'sdk/GeneratedSDK';
+import { GeneratedConfig } from 'core/config';
+const ProductsClient = GeneratedSDK.ProductsClient;
+
+export const ProductsService = new (ReactiveService('products', ProductsClient, {
+  recursive: true,
+  recurseDepth: 2,
+}))(GeneratedConfig);
+
+export const ProductsReactor = ProductsService.reactor('productsReactor', {
+  success: (response, services, db) => {
+    const { source, args, payload } = response;
+
+    switch (source) {
+
+      case ProductsService.getProduct:
+        return db.products.put(payload);
+
+      case ProductsService.createProduct:
+        services.alerts.actionSuccess(`Product added successfully`, 'products', response);
+        return db.products.add(payload);
+
+      case ProductsService.updateProduct:
+        services.alerts.actionSuccess(`Product updated successfully`, 'products', response);
+        return db.products.put(payload);
+
+      case ProductsService.deleteProduct:
+        services.alerts.actionSuccess(`Product deleted successfully`, 'products', response);
+        return db.products.delete(args[0]);
+    }
+  },
+  error: (response, services) => {
+    switch (response.source) {
+
+      case ProductsService.getProduct:
+        return services.alerts.actionError(`Failed to fetch Product details`, 'products', response);
+
+      case ProductsService.createProduct:
+        return services.alerts.actionError(`Failed to create Product`, 'products', response);
+
+      case ProductsService.updateProduct:
+        return services.alerts.actionError(`Failed to update Product`, 'products', response);
+
+      case ProductsService.deleteProduct:
+        return services.alerts.actionError(`Failed to delete Product`, 'products', response);
+    }
+  },
+});
+,
+  App/features/products/components/index.js:
+export * from './ProductsList';
+export * from './ProductForm';
+,
+  App/features/products/components/ProductForm.jsx:
+import { Uniformly } from '@livefree/uniformly';
+import { FieldStatus, TextField } from '@livefree/react-ui';
+
+export const ProductForm = ({ product = {}, onChange }) => (
+  <Uniformly
+    className="flex flex-col flex-grow gap-2"
+    onChange={onChange}
+  >
+  </Uniformly>
+);
+,
+  App/features/products/components/ProductsList.jsx:
+import { useCallback } from 'react';
+import { TableRow, TableColumn, TableCell } from '@heroui/react';;
+import { RequestBrokerDataTable } from '@livefree/react-ui';
+
+const columns = [
+  { propertyName: 'id', name: 'Id', isSortable: true },
+];
+
+export const ProductsList = ({ products = [], filters, onSelect }) => {
+  const renderCell = useCallback((row, columnKey) => {
+    const cellValue = row[columnKey];
+
+    switch (columnKey) {
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  return (
+    <RequestBrokerDataTable
+      columns={columns}
+      items={ products }
+      filters={filters}
+      renderColumn={column => (
+        <TableColumn
+          key={column.propertyName}
+          allowsSorting={column?.isSortable}
+        >
+          {column.name}
+        </TableColumn>
+      )}
+      renderRow={row => (
+        <TableRow key={row.id} onClick={() => onSelect(row)}>
+          {columnKey => <TableCell key={columnKey}>{renderCell(row, columnKey)}</TableCell>}
+        </TableRow>
+      )}
+      withPagination
+      withSorting
+      withColumnSelection
+    />
+  );
+};
+,
+  App/features/products/controllers/index.js:
+export * from './ProductsListController';
+export * from './ProductCreateController';
+export * from './ProductUpdateController';
+,
+  App/features/products/controllers/ProductCreateController.jsx:
+import { useState } from 'react';
+import { Button } from '@heroui/react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { SaveButton, withModalController } from '@livefree/react-ui';
+import { ProductForm } from 'features/products/components';
+
+const ProductCreateController = Reactive(
+  ({ services, monitors, onSuccess, onClose }) => {
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.products, 'createProduct', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <ProductForm onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <Button size="sm" onPress={() => onClose && onClose()} color="default" variant="light">
+            Cancel
+          </Button>
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.products.createProduct(form.data)
+            }
+            isLoading={monitors.createProduct.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'ProductCreateController',
+    monitors: services => [services.products.createProduct],
+  },
+);
+
+ProductCreateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <ProductCreateController onSuccess={onSuccess} {...props} />
+));
+
+export { ProductCreateController };
+,
+  App/features/products/controllers/ProductsListController.jsx:
+import { useCallback } from 'react';
+import { Reactive } from '@livefree/reactive';
+import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
+import { ProductsList } from 'features/products/components';
+
+export const ProductsListController = Reactive(
+  ({ data, services, monitors, db, onSelect }) => {
+    const { products } = data;
+
+    const handleExecute = useCallback((action, metadata) => {
+      action(metadata);
+    }, []);
+
+    return (
+      <RequestBroker
+        actionKey="queryProducts"
+        action={services.products.queryProducts}
+        defaultSorting={ { propertyName: 'id', sortType: false } }
+        defaultPaging={ { skip: 0, take: 50, page: 1, totalCount: 0 } }
+        isExecuting={monitors.queryProducts.executing}
+        skipInitial={() => db.products.toCollection().count()}
+        onExecute={handleExecute}
+      >
+        <ProductsList
+          products={ products }
+          isExecuting={monitors.queryProducts.executing}
+          onSelect={item => onSelect && onSelect(item)}
+        />
+      </RequestBroker>
+    );
+  },
+  {
+    name: 'ProductsListController',
+    queries: (_, services) => [
+      {
+        name: 'products',
+        execute: db =>
+          queryDexieWithMetadata(db, services.products.queryProducts.action, () => db.products, {
+            sorting: true,
+          }),
+        deps: [],
+      },
+    ],
+    monitors: services => [services.products.queryProducts],
+  },
+);
+,
+  App/features/products/controllers/ProductUpdateController.jsx:
+import { useState } from 'react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
+import { ProductForm } from 'features/products/components';
+
+const ProductUpdateController = Reactive(
+  ({ services, data, monitors, productId, onSuccess, onClose }) => {
+    const { product } = data;
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.products, 'updateProduct', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    useReactorOnSuccess(services.products, 'deleteProduct', () => {
+      onClose && onClose();
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <ProductForm product={ product } onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <DeleteButton
+            size="sm"
+            onPress={() => services.products.deleteProduct(productId)}
+            isLoading={monitors.deleteProduct.executing}
+          />
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.products.updateProduct(productId, form.data)
+            }
+            isLoading={monitors.updateProduct.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'ProductUpdateController',
+    sync: (services, { productId }) => [
+      {
+        execute: () => services.products.getProduct(productId),
+        deps: [productId],
+      },
+    ],
+    queries: ({ productId }) => [
+      {
+        name: 'product',
+        defaultValue: {},
+        execute: db => db.products.get(productId),
+        deps: [productId],
+      },
+    ],
+    monitors: services => [
+      services.products.updateProduct,
+      services.products.deleteProduct,
+    ],
+  },
+);
+
+ProductUpdateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <ProductUpdateController onSuccess={onSuccess} {...props} />
+));
+
+export { ProductUpdateController };
+,
+  App/features/products/views/index.js:
+export * from './ProductsListView';
+export * from './ProductCreateView';
+export * from './ProductUpdateView';
+,
+  App/features/products/views/ProductCreateView.jsx:
+import { ProductCreateController } from 'features/products/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const ProductCreateView = () => {
+  const navigate = useNavigate();
+
+  return (
+    <ProductCreateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Create Product"
+      onSuccess={() => navigate(RoutePaths.products.list())}
+      onClose={() => navigate(RoutePaths.products.list())}
+    />
+  );
+};
+,
+  App/features/products/views/ProductsListView.jsx:
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
+import { useSyncCreateItem } from '@livefree/applications';
+import { ProductsListController } from 'features/products/controllers';
+import { RoutePaths } from 'features/routing';
+
+export const ProductsListView = () => {
+  const navigate = useNavigate();
+  useSyncCreateItem('product');
+
+  return (
+    <>
+      <div className="flex flex-row justify-between mb-4">
+        <Breadcrumbs className="content-center">
+          <BreadcrumbItem isDisabled>Generated</BreadcrumbItem>
+          <BreadcrumbItem>Products</BreadcrumbItem>
+        </Breadcrumbs>
+      </div>
+      <ProductsListController onSelect={item => navigate(RoutePaths.products.update(item.id))} />
+      <Outlet />
+    </>
+  );
+};
+,
+  App/features/products/views/ProductUpdateView.jsx:
+import { ProductUpdateController } from 'features/products/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const ProductUpdateView = ({ productId }) => {
+  const parsedId =
+    !isNaN(Number(productId)) && productId !== '' ? Number(productId) : productId;
+  const navigate = useNavigate();
+
+  return (
+    <ProductUpdateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Update Product"
+      productId={parsedId}
+      onSuccess={() => navigate(RoutePaths.products.list())}
+      onClose={() => navigate(RoutePaths.products.list())}
+    />
+  );
+};
+,
+  App/features/routing/routers/ProductsRouter.jsx:
+import { Route, Routes } from 'react-router-dom';
+import {
+  ProductsListView,
+  ProductCreateView,
+  ProductUpdateView } from 'features/products/views';
+import { WithParams } from 'features/routing';
+
+export const ProductsRouter = () => (
+  <Routes>
+    <Route path="/" element={<ProductsListView />}>
+      <Route path="create" element={<ProductCreateView />} />
+      <Route path=":productId/update" element={<WithParams element={ ProductUpdateView } />} />
+    </Route>
+  </Routes>
+);
+,
+  Endpoints/ProductsEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IProductsEndpoint : IModelEndpoint<ProductModel, long>
+{
+}
+
+public class ProductsEndpoint(
+    IProductsService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<ProductModel, IProductsService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IProductsEndpoint
+{
+
+}
+,
+  Entities/ProductEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Product - Review Entity Configuration
+[Table("Product", Schema = "dbo")]
+public class ProductEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  Interfaces/IProductsService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Models;
+
+namespace Lft.Generated.Interfaces;
+
+public interface IProductsService : IModelService<ProductModel, long>
+{
+
+}
+,
+  Models/ProductModel.cs:
+namespace Lft.Generated.Models;
+
+public class ProductModel
+{
+    public long Id { get; set; }
+
+}
+,
+  Repositories/ProductsRepository.cs:
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace Lft.Generated.Repositories.SqlServer;
+
+public interface IProductsRepository : IRepository<ProductModel, long>
+{
+
+}
+
+public class ProductsRepository(
+    IConnectionFactory connectionFactory,
+    IMapper mapper,
+    ILogger<ProductEntity> logger,
+    IUnitOfWork unitOfWork)
+    : BaseRepository<ProductModel, ProductEntity, long>(connectionFactory, mapper, logger, unitOfWork),
+        IProductsRepository
+{
+}
+,
+  Routes/ProductsRoutes.cs:
+using LiveFree.Core.AspNetCore.Extensions;
+using LiveFree.Core.AspNetCore.Routing;
+using Lft.Generated.Api.Endpoints;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Lft.Generated.Api.Routes;
+
+public static class ProductsRoutes
+{
+    public static void MapProductsRoutes(
+        this WebApplication app,
+        string basePrefix,
+        string prefix = "")
+    {
+        var group = app
+            .MapModelRoutes<ProductModel, IProductsEndpoint, long>(basePrefix, prefix, "Products")
+            .AddGet()
+            .AddCreate()
+            .AddUpdate()
+            .AddDelete()
+            .Builder
+            .RequireAuthorization();
+
+    }
+}
+,
+  Services/ProductsService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class ProductsService(
+    IProductsRepository repository,
+    ILogger<ProductModel> logger)
+    : BaseModelService<IProductsRepository, ProductModel, long>(repository, logger), IProductsService
+{
+}
+
+}
