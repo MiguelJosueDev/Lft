@@ -107,3 +107,5 @@ build/
 # Si algún día ves carpetas temporales dentro de este proyecto,
 # agrégalas aquí explícitamente. Ejemplo:
 # .antigravity/
+
+.fake
