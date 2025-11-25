@@ -7,6 +7,6 @@ public interface IFileIntegrationService
     Task<FileChangePlan> IntegrateAsync(
         string filePath,
         string newFragment,
-        // In the future we might pass an IntegrationOptions object or similar
+        IntegrationOptions options,
         CancellationToken ct = default);
 }

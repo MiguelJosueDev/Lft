@@ -5,56 +5,60 @@ namespace Lft.Integration;
 
 public class AnchorIntegrationService : IFileIntegrationService
 {
-    // Simple strategy: Look for "// LFT-ANCHOR: <NAME>" and insert before or after.
-    // For this MVP, let's assume we just append to the end of the file if no anchor is found,
-    // OR we look for a specific default anchor if provided.
-    // But wait, the Step definition should probably say *where* to insert.
-    // For now, let's implement a basic logic:
-    // If the file exists, we look for a standard anchor like "// LFT-INSERT-MARKER".
-    // If not found, we might just append or warn.
-    
-    // Actually, the requirement says "Integración en archivos existentes (anchors)".
-    // Let's assume the template content itself might contain instructions or we just look for a generic marker.
-    // Or better, let's assume the `newFragment` is intended to be inserted into `filePath`.
-    
-    public async Task<FileChangePlan> IntegrateAsync(string filePath, string newFragment, CancellationToken ct = default)
+    public async Task<FileChangePlan> IntegrateAsync(
+        string filePath,
+        string newFragment,
+        IntegrationOptions options,
+        CancellationToken ct = default)
     {
         if (!File.Exists(filePath))
         {
-            // If file doesn't exist, it's a Create operation
             return new FileChangePlan(filePath, string.Empty, newFragment, ChangeType.Create);
         }
 
         var oldContent = await File.ReadAllTextAsync(filePath, ct);
-        
-        // MVP Logic:
-        // 1. Check if the newFragment is already present (idempotency check - primitive).
-        if (oldContent.Contains(newFragment.Trim()))
+
+        // 1. Idempotency Check
+        if (options.CheckIdempotency && oldContent.Contains(newFragment.Trim()))
         {
-             return new FileChangePlan(filePath, oldContent, oldContent, ChangeType.Skip);
+            return new FileChangePlan(filePath, oldContent, oldContent, ChangeType.Skip);
         }
 
-        // 2. Look for anchor. Let's hardcode a convention for now or make it configurable later.
-        // Convention: "// LFT-ANCHOR: METHODS"
-        const string Anchor = "// LFT-ANCHOR: METHODS";
-        
-        if (oldContent.Contains(Anchor))
+        // 2. Strategy Execution
+        return options.Strategy switch
         {
-            // Insert BEFORE the anchor (or after? usually inside a class, so before the closing brace or at a specific spot).
-            // Let's insert BEFORE the anchor line for now.
-            var sb = new StringBuilder(oldContent);
-            sb.Replace(Anchor, $"{newFragment}\n\n{Anchor}");
-            var newContent = sb.ToString();
-            
-            return new FileChangePlan(filePath, oldContent, newContent, ChangeType.Modify);
+            IntegrationStrategy.Anchor => ApplyAnchorStrategy(filePath, oldContent, newFragment, options),
+            IntegrationStrategy.Append => new FileChangePlan(filePath, oldContent, oldContent + Environment.NewLine + newFragment, ChangeType.Modify),
+            IntegrationStrategy.Prepend => new FileChangePlan(filePath, oldContent, newFragment + Environment.NewLine + oldContent, ChangeType.Modify),
+            _ => throw new NotImplementedException($"Strategy {options.Strategy} not implemented yet.")
+        };
+    }
+
+    private FileChangePlan ApplyAnchorStrategy(string filePath, string oldContent, string newFragment, IntegrationOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.AnchorToken))
+        {
+            // Fallback if no anchor token provided but strategy is Anchor.
+            // We could throw, but let's default to Append with a warning, or just return Skip.
+            // For safety, let's return Skip and maybe we need a way to signal warnings.
+            // For now, let's treat it as "Anchor not found" behavior.
+            return new FileChangePlan(filePath, oldContent, oldContent, ChangeType.Skip);
         }
-        
-        // Fallback: If no anchor, maybe append to end? Or just return Skip/Warning?
-        // Let's append to end for now to be safe, or maybe just don't touch it.
-        // User said "Integración en archivos existentes (anchors)". If no anchor, we can't integrate safely.
-        // Let's return Skip with a warning in the plan (maybe we need a 'Warning' field later).
-        // For now, let's just Append to end as a fallback.
-        
-        return new FileChangePlan(filePath, oldContent, oldContent + "\n" + newFragment, ChangeType.Modify);
+
+        if (!oldContent.Contains(options.AnchorToken))
+        {
+            // Anchor not found.
+            // Future: Options.OnAnchorMissing (Throw, Append, Skip)
+            return new FileChangePlan(filePath, oldContent, oldContent, ChangeType.Skip);
+        }
+
+        var sb = new StringBuilder(oldContent);
+        var replacement = options.Position == InsertPosition.Before
+            ? $"{newFragment}{Environment.NewLine}{options.AnchorToken}"
+            : $"{options.AnchorToken}{Environment.NewLine}{newFragment}";
+
+        sb.Replace(options.AnchorToken, replacement);
+
+        return new FileChangePlan(filePath, oldContent, sb.ToString(), ChangeType.Modify);
     }
 }
