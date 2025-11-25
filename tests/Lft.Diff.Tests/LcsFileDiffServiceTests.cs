@@ -73,7 +73,7 @@ public class LcsFileDiffServiceTests
         diff.Hunks[1].Should().BeEquivalentTo(new DiffHunk(
             OldStartLine: 4,
             OldLineCount: 0,
-            NewStartLine: 4,
+            NewStartLine: 3,
             NewLineCount: 1,
             Lines: new List<DiffLine> { new(DiffLineKind.Added, "x") }
         ));

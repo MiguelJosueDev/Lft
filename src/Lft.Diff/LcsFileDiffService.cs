@@ -117,7 +117,9 @@ public sealed class LcsFileDiffService : IFileDiffService
             var hunkNewStart = newLineIndex;
             var hunkOldCount = 0;
             var hunkNewCount = 0;
+            var startPosition = position;
 
+            // Collect all lines in this hunk and count changes
             while (position < diffLines.Count && diffLines[position].Kind != DiffLineKind.Unchanged)
             {
                 var current = diffLines[position];
@@ -126,16 +128,18 @@ public sealed class LcsFileDiffService : IFileDiffService
                 if (current.Kind == DiffLineKind.Removed)
                 {
                     hunkOldCount++;
-                    oldLineIndex++;
                 }
                 else if (current.Kind == DiffLineKind.Added)
                 {
                     hunkNewCount++;
-                    newLineIndex++;
                 }
 
                 position++;
             }
+
+            // Update indices after collecting the hunk
+            oldLineIndex += hunkOldCount;
+            newLineIndex += hunkNewCount;
 
             hunks.Add(new DiffHunk(hunkOldStart, hunkOldCount, hunkNewStart, hunkNewCount, hunkLines));
         }
