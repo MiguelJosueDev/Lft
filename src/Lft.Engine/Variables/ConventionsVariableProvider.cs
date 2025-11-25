@@ -9,7 +9,10 @@ public sealed class ConventionsVariableProvider : IVariableProvider
 {
     public void Populate(VariableContext ctx, GenerationRequest request)
     {
-        var entity = request.EntityName;
+        // Normalize input to PascalCase - ensures "user", "User", "USER" all become "User"
+        // Note: Pascalize() doesn't handle ALLCAPS, so we lowercase first only if entirely uppercase
+        var raw = request.EntityName;
+        var entity = IsAllUpperCase(raw) ? raw.ToLower().Pascalize() : raw.Pascalize();
 
         // Entity variations - use PascalCase for class names
         ctx.Set("_EntityPascal", entity);                            // FundingType
@@ -17,7 +20,9 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         ctx.Set("_EntityKebab", entity.Kebaberize());                // funding-type (using Humanizer)
 
         // Model variations (same as entity for simple case)
-        ctx.Set("_ModelName", entity);                               // FundingType
+        // Note: _modelName and _moduleName are computed in vars.yml using Liquid filters
+        // to avoid case-insensitive collision in Fluid
+        ctx.Set("_ModelName", entity);                               // FundingType (PascalCase)
 
         // Module variations (plural)
         var plural = entity.Pluralize();                             // Use Humanizer for proper pluralization
@@ -57,4 +62,7 @@ public sealed class ConventionsVariableProvider : IVariableProvider
 
         ctx.Set("modelDefinition", modelDefinition);
     }
+
+    private static bool IsAllUpperCase(string value)
+        => !string.IsNullOrEmpty(value) && value.All(c => !char.IsLetter(c) || char.IsUpper(c));
 }

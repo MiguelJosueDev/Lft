@@ -115,11 +115,13 @@ public class ConventionsVariableProviderTests
     }
 
     [Theory]
-    [InlineData("A")]           // Single character
-    [InlineData("AB")]          // Two characters
-    [InlineData("ABC")]         // Three characters
-    [InlineData("ABCD")]        // Four characters
-    public void Populate_ShouldHandleShortNames(string entityName)
+    [InlineData("A", "A")]           // Single character (unchanged)
+    [InlineData("AB", "Ab")]         // Two characters ALLCAPS -> normalized
+    [InlineData("ABC", "Abc")]       // Three characters ALLCAPS -> normalized
+    [InlineData("ABCD", "Abcd")]     // Four characters ALLCAPS -> normalized
+    [InlineData("Ab", "Ab")]         // Mixed case preserved
+    [InlineData("aB", "AB")]         // camelCase -> PascalCase
+    public void Populate_ShouldHandleShortNames(string entityName, string expected)
     {
         // Arrange
         var request = new GenerationRequest(entityName, "csharp");
@@ -130,8 +132,8 @@ public class ConventionsVariableProviderTests
 
         // Assert
         var variables = context.AsReadOnly();
-        variables["_ModelName"].Should().Be(entityName);
-        variables["_EntityPascal"].Should().Be(entityName);
+        variables["_ModelName"].Should().Be(expected);
+        variables["_EntityPascal"].Should().Be(expected);
     }
 
     [Theory]
@@ -286,5 +288,34 @@ public class ConventionsVariableProviderTests
         // Assert
         var variables = context.AsReadOnly();
         variables["_EntityPlural"].Should().Be(expectedPlural);
+    }
+
+    [Theory]
+    [InlineData("user", "User", "Users")]           // lowercase -> normalized
+    [InlineData("User", "User", "Users")]           // PascalCase (already correct)
+    [InlineData("USER", "User", "Users")]           // UPPERCASE -> normalized
+    [InlineData("fundingType", "FundingType", "FundingTypes")]  // camelCase -> normalized
+    [InlineData("FundingType", "FundingType", "FundingTypes")]  // PascalCase (already correct)
+    [InlineData("FUNDINGTYPE", "Fundingtype", "Fundingtypes")] // ALL CAPS compound (loses word boundary info)
+    [InlineData("product", "Product", "Products")]  // lowercase -> normalized
+    [InlineData("PRODUCT", "Product", "Products")]  // UPPERCASE -> normalized
+    public void Populate_ShouldNormalizeInputCaseToProduceConsistentVariables(
+        string input,
+        string expectedPascal,
+        string expectedPlural)
+    {
+        // Arrange
+        var request = new GenerationRequest(input, "csharp");
+        var context = new VariableContext();
+
+        // Act
+        _provider.Populate(context, request);
+
+        // Assert
+        // Note: camelCase variables (_modelName, _moduleName) are computed via Liquid filters in vars.yml
+        var variables = context.AsReadOnly();
+        variables["_ModelName"].Should().Be(expectedPascal, $"_ModelName for input '{input}'");
+        variables["_EntityPascal"].Should().Be(expectedPascal, $"_EntityPascal for input '{input}'");
+        variables["_ModuleName"].Should().Be(expectedPlural, $"_ModuleName for input '{input}'");
     }
 }

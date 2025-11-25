@@ -228,6 +228,7 @@ public class {{ _ModuleName }}Repository : BaseRepository<{{ _ModelName }}Model,
         // Assert
         result.Should().Contain("using Lft.Generated.Models;");
         result.Should().Contain("namespace Lft.Generated.Repositories;");
+
         result.Should().Contain("public interface IProductsRepository : IRepository<ProductModel, long>");
         result.Should().Contain("public class ProductsRepository : BaseRepository<ProductModel, ProductEntity, long>");
     }
@@ -296,4 +297,22 @@ public class {{ _ModuleName }}Repository : BaseRepository<{{ _ModelName }}Model,
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Failed to parse Liquid template:*");
     }
+
+    [Fact]
+    public void RenderTemplate_WithHumanizerFilters_ShouldTransformCase()
+    {
+        // Arrange - Use Humanizer filters for case transformations
+        var template = "PascalCase: {{ modelName | pascal_case }} | camelCase: {{ modelName | camel_case }}";
+        var variables = new Dictionary<string, object?>
+        {
+            ["modelName"] = "product"
+        };
+
+        // Act
+        var result = _renderer.Render(template, variables);
+
+        // Assert
+        result.Should().Be("PascalCase: Product | camelCase: product");
+    }
+
 }
