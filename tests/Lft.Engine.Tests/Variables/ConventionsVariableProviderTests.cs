@@ -109,8 +109,9 @@ public class ConventionsVariableProviderTests
         // Assert
         var variables = context.AsReadOnly();
         variables.Should().ContainKey("modelDefinition");
-        var modelDef = variables["modelDefinition"] as dynamic;
+        var modelDef = variables["modelDefinition"];
         modelDef.Should().NotBeNull();
+        modelDef.Should().BeOfType<System.Dynamic.ExpandoObject>();
     }
 
     [Theory]

@@ -1,3 +1,4 @@
+using System.Dynamic;
 using System.Text;
 using Humanizer;
 using Lft.Domain.Models;
@@ -38,7 +39,22 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         ctx.Set("IConnectionFactoryName", "IConnectionFactory");
         ctx.Set("IUnitOfWorkName", "IUnitOfWork");
 
-        // Empty model definition (no properties by default)
-        ctx.Set("modelDefinition", new { properties = new object[] { }, entity = new { table = entity, schema = "dbo", primary = new { dbName = "Id", dbType = "DbType.Int64" } } });
+        // Model definition using ExpandoObject for Liquid compatibility
+        // This allows Liquid to access nested properties like {{ modelDefinition.entity.table }}
+        dynamic modelDefinition = new ExpandoObject();
+        modelDefinition.properties = new List<object>();
+
+        dynamic entityDef = new ExpandoObject();
+        entityDef.table = entity;
+        entityDef.schema = "dbo";
+
+        dynamic primaryDef = new ExpandoObject();
+        primaryDef.dbName = "Id";
+        primaryDef.dbType = "DbType.Int64";
+
+        entityDef.primary = primaryDef;
+        modelDefinition.entity = entityDef;
+
+        ctx.Set("modelDefinition", modelDefinition);
     }
 }

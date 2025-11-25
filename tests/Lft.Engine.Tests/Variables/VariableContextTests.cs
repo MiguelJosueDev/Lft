@@ -85,10 +85,13 @@ public class VariableContextTests
 
         // Assert
         var variables = context.AsReadOnly();
-        var result = variables["ComplexKey"] as dynamic;
+        var result = variables["ComplexKey"];
         result.Should().NotBeNull();
-        ((string)result.Name).Should().Be("Test");
-        ((int)result.Value).Should().Be(123);
+
+        // Use dynamic cast to access properties
+        dynamic dynResult = result!;
+        ((string)dynResult.Name).Should().Be("Test");
+        ((int)dynResult.Value).Should().Be(123);
     }
 
     [Fact]

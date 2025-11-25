@@ -4,11 +4,115 @@ entryPoints:
     commandName: crud
     action: group
     steps:
+      # ========== API LAYER (Backend) ==========
+
+      # 1. Models
+      - name: CreateModel
+        action: create
+        source: resources/api/models/model.liquid
+        output: Models/{{ _ModelName }}Model.cs
+
+      # 2. Repositories
+      - name: CreateEntity
+        action: create
+        source: resources/api/repositories/entity.liquid
+        output: Entities/{{ _ModelName }}Entity.cs
+
       - name: CreateRepository
         action: create
-        source: resources/repository.liquid
-        output: Repositories/{{ _EntityPascal }}Repository.cs
-      - name: AddMethod
+        source: resources/api/repositories/repository.liquid
+        output: Repositories/{{ _ModuleName }}Repository.cs
+
+      # 3. Services
+      - name: CreateServiceInterface
         action: create
-        source: resources/method.liquid
-        output: Repositories/{{ _EntityPascal }}Repository.cs
+        source: resources/api/services/i_service.liquid
+        output: Interfaces/I{{ _ModuleName }}Service.cs
+
+      - name: CreateService
+        action: create
+        source: resources/api/services/service.liquid
+        output: Services/{{ _ModuleName }}Service.cs
+
+      # 4. Host (Endpoints & Routes)
+      - name: CreateEndpoint
+        action: create
+        source: resources/api/host/endpoints.liquid
+        output: Endpoints/{{ _ModuleName }}Endpoint.cs
+
+      - name: CreateRoutes
+        action: create
+        source: resources/api/host/routes.liquid
+        output: Routes/{{ _ModuleName }}Routes.cs
+
+      # ========== APP LAYER (Frontend) ==========
+
+      # 5. Feature Views
+      - name: CreateIndexViews
+        action: create
+        source: resources/app/feature/views/index_view.liquid
+        output: App/features/{{ _moduleName }}/views/index.js
+
+      - name: CreateListViews
+        action: create
+        source: resources/app/feature/views/list_view.liquid
+        output: App/features/{{ _moduleName }}/views/{{ _ModuleName }}ListView.jsx
+
+      - name: CreateAddViews
+        action: create
+        source: resources/app/feature/views/create_view.liquid
+        output: App/features/{{ _moduleName }}/views/{{ _ModelName }}CreateView.jsx
+
+      - name: CreateUpdateViews
+        action: create
+        source: resources/app/feature/views/update_view.liquid
+        output: App/features/{{ _moduleName }}/views/{{ _ModelName }}UpdateView.jsx
+
+      # 6. Feature Controllers
+      - name: CreateIndexControllers
+        action: create
+        source: resources/app/feature/controllers/index_controller.liquid
+        output: App/features/{{ _moduleName }}/controllers/index.js
+
+      - name: CreateListControllers
+        action: create
+        source: resources/app/feature/controllers/list_controller.liquid
+        output: App/features/{{ _moduleName }}/controllers/{{ _ModuleName }}ListController.jsx
+
+      - name: CreateAddControllers
+        action: create
+        source: resources/app/feature/controllers/create_controller.liquid
+        output: App/features/{{ _moduleName }}/controllers/{{ _ModelName }}CreateController.jsx
+
+      - name: CreateUpdateControllers
+        action: create
+        source: resources/app/feature/controllers/update_controller.liquid
+        output: App/features/{{ _moduleName }}/controllers/{{ _ModelName }}UpdateController.jsx
+
+      # 7. Feature Components
+      - name: CreateIndexComponents
+        action: create
+        source: resources/app/feature/components/index_components.liquid
+        output: App/features/{{ _moduleName }}/components/index.js
+
+      - name: CreateListComponents
+        action: create
+        source: resources/app/feature/components/list.liquid
+        output: App/features/{{ _moduleName }}/components/{{ _ModuleName }}List.jsx
+
+      - name: CreateFormComponents
+        action: create
+        source: resources/app/feature/components/form.liquid
+        output: App/features/{{ _moduleName }}/components/{{ _ModelName }}Form.jsx
+
+      # 8. Reactive Services
+      - name: CreateReactiveService
+        action: create
+        source: resources/app/reactive/service.liquid
+        output: App/core/services/{{ _ModuleName }}Service.js
+
+      # 9. Routing
+      - name: CreateRouterModule
+        action: create
+        source: resources/app/routing/router_module.liquid
+        output: App/features/routing/routers/{{ _ModuleName }}Router.jsx

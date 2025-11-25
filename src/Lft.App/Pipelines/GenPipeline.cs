@@ -36,9 +36,14 @@ public class GenPipeline
         foreach (var file in result.Files)
         {
             var fullPath = Path.Combine(request.OutputDirectory ?? Directory.GetCurrentDirectory(), file.Path);
-            
+
             // Calculate plan (Create or Modify)
-            var plan = await _integrationService.IntegrateAsync(fullPath, file.Content, ct);
+            var options = new IntegrationOptions
+            {
+                Strategy = IntegrationStrategy.Anchor,
+                CheckIdempotency = true
+            };
+            var plan = await _integrationService.IntegrateAsync(fullPath, file.Content, options, ct);
             plans.Add(plan);
         }
 

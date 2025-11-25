@@ -107,14 +107,23 @@ public class {{ _ModelName }}Model
     public {{ property.type }} {{ property.name }} { get; set; }
 {%- endfor %}
 }";
+
+        // Use ExpandoObject for properties in loops
+        dynamic prop1 = new System.Dynamic.ExpandoObject();
+        prop1.type = "string";
+        prop1.name = "Name";
+
+        dynamic prop2 = new System.Dynamic.ExpandoObject();
+        prop2.type = "int";
+        prop2.name = "Age";
+
+        dynamic prop3 = new System.Dynamic.ExpandoObject();
+        prop3.type = "bool";
+        prop3.name = "IsActive";
+
         var variables = new Dictionary<string, object?>
         {
-            ["properties"] = new[]
-            {
-                new { type = "string", name = "Name" },
-                new { type = "int", name = "Age" },
-                new { type = "bool", name = "IsActive" }
-            }
+            ["properties"] = new[] { prop1, prop2, prop3 }
         };
 
         // Act
@@ -149,16 +158,17 @@ public class {{ _ModelName }}Model
     {
         // Arrange
         var template = "Table: {{ modelDefinition.entity.table }}, Schema: {{ modelDefinition.entity.schema }}";
+
+        // Use ExpandoObject instead of anonymous objects for Liquid compatibility
+        dynamic modelDefinition = new System.Dynamic.ExpandoObject();
+        dynamic entity = new System.Dynamic.ExpandoObject();
+        entity.table = "Products";
+        entity.schema = "dbo";
+        modelDefinition.entity = entity;
+
         var variables = new Dictionary<string, object?>
         {
-            ["modelDefinition"] = new
-            {
-                entity = new
-                {
-                    table = "Products",
-                    schema = "dbo"
-                }
-            }
+            ["modelDefinition"] = modelDefinition
         };
 
         // Act
