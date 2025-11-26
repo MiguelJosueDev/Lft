@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Lft.Engine\Lft.Engine.csproj" />
     <ProjectReference Include="..\Lft.App\Lft.App.csproj" />
     <ProjectReference Include="..\Lft.Discovery\Lft.Discovery.csproj" />
+    <ProjectReference Include="..\Lft.SqlSchema\Lft.SqlSchema.csproj" />
   </ItemGroup>
 
   <!-- Include templates folder in the tool package (pack only, not in build output) -->

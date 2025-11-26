@@ -7,6 +7,7 @@ public sealed class GenerationRequest
     public string? OutputDirectory { get; }
     public string CommandName { get; }
     public string TemplatePack { get; }
+    public CrudSchemaDefinition? CrudSchemaDefinition { get; }
     public string? Profile { get; }
 
     public GenerationRequest(
@@ -15,6 +16,7 @@ public sealed class GenerationRequest
         string? outputDirectory = null,
         string commandName = "crud",
         string templatePack = "main",
+        CrudSchemaDefinition? crudSchemaDefinition = null)
         string? profile = null)
     {
         EntityName = entityName ?? throw new ArgumentNullException(nameof(entityName));
@@ -22,6 +24,7 @@ public sealed class GenerationRequest
         OutputDirectory = outputDirectory;
         CommandName = commandName;
         TemplatePack = templatePack;
+        CrudSchemaDefinition = crudSchemaDefinition;
         Profile = profile;
     }
 }
