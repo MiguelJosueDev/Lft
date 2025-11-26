@@ -74,23 +74,23 @@ public sealed class SqlServerSchemaParser : ISqlSchemaParser
             var identifier = NameParser.From(node.SchemaObjectName);
             var builder = _registry.GetOrAdd(identifier, SqlObjectKind.Table);
 
-            foreach (var element in node.Definition?.TableElements ?? Enumerable.Empty<TableDefinitionElement>())
+            foreach (var element in node.Definition?.TableConstraints ?? Enumerable.Empty<ConstraintDefinition>())
             {
-                switch (element)
+                if (element is UniqueConstraintDefinition { IsPrimaryKey: true } primaryKey)
                 {
-                    case ColumnDefinition column:
-                        builder.AddOrUpdateColumn(_columnFactory.FromColumnDefinition(column, false));
-                        break;
-                    case PrimaryKeyConstraintDefinition primaryKey:
-                        builder.MarkPrimaryKey(PrimaryKeyResolver.FromConstraint(primaryKey));
-                        break;
+                    builder.MarkPrimaryKey(PrimaryKeyResolver.FromConstraint(primaryKey));
                 }
+            }
+
+            foreach (var column in node.Definition?.ColumnDefinitions ?? Enumerable.Empty<ColumnDefinition>())
+            {
+                builder.AddOrUpdateColumn(_columnFactory.FromColumnDefinition(column, false));
             }
         }
 
         public override void Visit(CreateViewStatement node)
         {
-            var identifier = NameParser.From(node.SchemaName);
+            var identifier = NameParser.From(node.SchemaObjectName);
             var builder = _registry.GetOrAdd(identifier, SqlObjectKind.View);
 
             foreach (var column in _viewColumnExtractor.Extract(node))
@@ -119,8 +119,8 @@ public sealed class SqlServerSchemaParser : ISqlSchemaParser
         public SqlColumnSchema FromColumnDefinition(ColumnDefinition column, bool isPrimaryFromTableConstraint)
         {
             var sqlType = ScriptFragment(column.DataType);
-            var isNullable = column.Nullable ?? true;
-            var isPrimaryKey = isPrimaryFromTableConstraint || column.Constraints.OfType<PrimaryKeyConstraintDefinition>().Any();
+            var isNullable = IsNullable(column);
+            var isPrimaryKey = isPrimaryFromTableConstraint || column.Constraints.OfType<UniqueConstraintDefinition>().Any(c => c.IsPrimaryKey);
             var isIdentity = column.IdentityOptions is not null;
             var defaultValue = column.DefaultConstraint?.Expression is { } expression ? ScriptFragment(expression) : null;
             var maxLength = GetMaxLength(column.DataType);
@@ -133,6 +133,19 @@ public sealed class SqlServerSchemaParser : ISqlSchemaParser
                 isIdentity,
                 maxLength,
                 defaultValue);
+        }
+
+        private static bool IsNullable(ColumnDefinition column)
+        {
+            // Check for explicit NULL/NOT NULL constraint
+            var nullableConstraint = column.Constraints.OfType<NullableConstraintDefinition>().FirstOrDefault();
+            if (nullableConstraint != null)
+            {
+                return nullableConstraint.Nullable;
+            }
+
+            // Default to nullable if no explicit constraint
+            return true;
         }
 
         private static int? GetMaxLength(DataTypeReference dataType)
@@ -320,24 +333,6 @@ public sealed class SqlServerSchemaParser : ISqlSchemaParser
                 ? new SchemaObjectIdentifier("dbo", string.Empty)
                 : new SchemaObjectIdentifier(name.SchemaIdentifier?.Value ?? "dbo", name.BaseIdentifier.Value);
         }
-
-        public static SchemaObjectIdentifier From(SchemaObjectNameOrIdentifier name)
-        {
-            if (name is null)
-            {
-                return new SchemaObjectIdentifier("dbo", string.Empty);
-            }
-
-            if (name.SchemaObjectName is not null)
-            {
-                return From(name.SchemaObjectName);
-            }
-
-            var identifiers = name.Identifier.Identifiers;
-            var schema = identifiers.Count > 1 ? identifiers[^2].Value : "dbo";
-            var objectName = identifiers[^1].Value;
-            return new SchemaObjectIdentifier(schema, objectName);
-        }
     }
 
     private static class PrimaryKeyResolver
@@ -350,7 +345,7 @@ public sealed class SqlServerSchemaParser : ISqlSchemaParser
             }
 
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var constraint in constraints.OfType<PrimaryKeyConstraintDefinition>())
+            foreach (var constraint in constraints.OfType<UniqueConstraintDefinition>().Where(c => c.IsPrimaryKey))
             {
                 AddColumns(set, constraint);
             }
@@ -358,14 +353,14 @@ public sealed class SqlServerSchemaParser : ISqlSchemaParser
             return set;
         }
 
-        public static IEnumerable<string> FromConstraint(PrimaryKeyConstraintDefinition constraint)
+        public static IEnumerable<string> FromConstraint(UniqueConstraintDefinition constraint)
         {
             var names = new List<string>();
             AddColumns(names, constraint);
             return names;
         }
 
-        private static void AddColumns(ICollection<string> target, PrimaryKeyConstraintDefinition constraint)
+        private static void AddColumns(ICollection<string> target, UniqueConstraintDefinition constraint)
         {
             foreach (var column in constraint.Columns)
             {
@@ -382,7 +377,6 @@ public sealed class SqlServerSchemaParser : ISqlSchemaParser
             return expression switch
             {
                 ColumnReferenceExpression columnRef => columnRef.MultiPartIdentifier.Identifiers.Last().Value,
-                FunctionCall { CallTarget: ColumnReferenceExpression columnTarget } => columnTarget.MultiPartIdentifier.Identifiers.Last().Value,
                 _ => null
             };
         }

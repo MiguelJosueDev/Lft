@@ -9,7 +9,7 @@ namespace Lft.SqlSchema;
 /// </summary>
 public interface ISqlScriptDomFactory
 {
-    TSqlParserBase CreateParser();
+    TSqlParser CreateParser();
 
     SqlScriptGenerator CreateScriptGenerator();
 }

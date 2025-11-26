@@ -9,4 +9,5 @@ public sealed record CrudGenerationOptions(
     string? Ddl = null,
     string? DdlFile = null,
     SqlObjectKind? SqlObjectKindHint = null,
-    string? SqlObjectNameHint = null);
+    string? SqlObjectNameHint = null,
+    string? Profile = null);

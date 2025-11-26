@@ -8,7 +8,7 @@ namespace Lft.SqlSchema;
 /// </summary>
 public sealed class SqlScriptDomFactory : ISqlScriptDomFactory
 {
-    public TSqlParserBase CreateParser()
+    public TSqlParser CreateParser()
     {
         return new TSql160Parser(initialQuotedIdentifiers: true);
     }

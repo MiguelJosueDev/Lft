@@ -54,38 +54,7 @@ static async Task HandleGenCommand(string[] args)
 
     var entityName = args[2];
     var options = ParseOptions(args, entityName);
-
-    // Parse flags
-    var language = "csharp";
-    var dryRun = false;
-    string? profile = null;
-
-    for (var i = 3; i < args.Length; i++)
-    {
-        if (string.Equals(args[i], "--lang", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            language = args[i + 1];
-            i++;
-        }
-        else if (string.Equals(args[i], "--dry-run", StringComparison.OrdinalIgnoreCase))
-        {
-            dryRun = true;
-        }
-        else if (string.Equals(args[i], "--profile", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            profile = args[i + 1];
-            i++;
-        }
-    }
-
-    var request = new GenerationRequest(
-        entityName: entityName,
-        language: language,
-        outputDirectory: Directory.GetCurrentDirectory(),
-        commandName: "crud",
-        templatePack: "main",
-        profile: profile
-    );
+    string? profile = options.Profile;
 
     // Setup dependencies (Manual DI for now)
     // Look for templates in multiple locations:
@@ -148,15 +117,11 @@ static async Task HandleGenCommand(string[] args)
 
     var request = await requestFactory.CreateAsync(options);
 
-    // Pipeline
-    var pipeline = new GenPipeline(engine, integrationService, fileWriter);
-
     var steps = new IGenerationStep[] { validationStep };
 
     // Pipeline (no longer needs pathResolver - StepExecutor handles path resolution)
     var pipeline = new GenPipeline(engine, integrationService, fileWriter, steps);
 
-    Console.WriteLine($"[LFT] Generating CRUD for entity '{entityName}' (lang: {language})...");
     Console.WriteLine($"[LFT] Generating CRUD for entity '{entityName}' (lang: {options.Language})...");
 
     try
@@ -178,6 +143,7 @@ static CrudGenerationOptions ParseOptions(string[] args, string entityName)
     string? ddlFile = null;
     SqlObjectKind? sqlObjectKindHint = null;
     string? sqlObjectNameHint = null;
+    string? profile = null;
 
     for (var i = 3; i < args.Length; i++)
     {
@@ -189,6 +155,11 @@ static CrudGenerationOptions ParseOptions(string[] args, string entityName)
         else if (string.Equals(args[i], "--dry-run", StringComparison.OrdinalIgnoreCase))
         {
             dryRun = true;
+        }
+        else if (string.Equals(args[i], "--profile", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+        {
+            profile = args[i + 1];
+            i++;
         }
         else if (string.Equals(args[i], "--ddl", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
         {
@@ -227,7 +198,8 @@ static CrudGenerationOptions ParseOptions(string[] args, string entityName)
         Ddl: ddl,
         DdlFile: ddlFile,
         SqlObjectKindHint: sqlObjectKindHint,
-        SqlObjectNameHint: sqlObjectNameHint);
+        SqlObjectNameHint: sqlObjectNameHint,
+        Profile: profile);
 }
 
 static void PrintUsage()

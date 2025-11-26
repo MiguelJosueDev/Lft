@@ -16,7 +16,7 @@ public sealed class GenerationRequest
         string? outputDirectory = null,
         string commandName = "crud",
         string templatePack = "main",
-        CrudSchemaDefinition? crudSchemaDefinition = null)
+        CrudSchemaDefinition? crudSchemaDefinition = null,
         string? profile = null)
     {
         EntityName = entityName ?? throw new ArgumentNullException(nameof(entityName));
