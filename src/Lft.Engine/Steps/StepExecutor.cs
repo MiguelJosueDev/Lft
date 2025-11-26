@@ -3,6 +3,8 @@ using Lft.Domain.Models;
 using Lft.Domain.Services;
 using Lft.Engine.Templates;
 using Lft.Engine.Variables;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using DomainInjectionPosition = Lft.Domain.Services.InjectionPosition;
 
 namespace Lft.Engine.Steps;
@@ -13,18 +15,21 @@ public sealed class StepExecutor
     private readonly ITemplateRenderer _renderer;
     private readonly IPathResolver? _pathResolver;
     private readonly ICodeInjector? _codeInjector;
+    private readonly ILogger<StepExecutor> _logger;
     private ProjectManifest? _manifest;
 
     public StepExecutor(
         string templatesRoot,
         ITemplateRenderer renderer,
         IPathResolver? pathResolver = null,
-        ICodeInjector? codeInjector = null)
+        ICodeInjector? codeInjector = null,
+        ILogger<StepExecutor>? logger = null)
     {
         _templatesRoot = templatesRoot;
         _renderer = renderer;
         _pathResolver = pathResolver;
         _codeInjector = codeInjector;
+        _logger = logger ?? NullLogger<StepExecutor>.Instance;
     }
 
     /// <summary>
@@ -132,7 +137,7 @@ public sealed class StepExecutor
     {
         if (_codeInjector == null)
         {
-            Console.WriteLine($"[LFT] Skipping inject step '{step.Name}': No code injector configured.");
+            _logger.LogInformation("Skipping inject step '{Step}': No code injector configured.", step.Name);
             return;
         }
 
@@ -154,7 +159,7 @@ public sealed class StepExecutor
             var injectionPoint = GetInjectionPointByTarget(step.Target);
             if (injectionPoint == null)
             {
-                Console.WriteLine($"[LFT] Skipping inject '{step.Name}': Target '{step.Target}' not found in manifest");
+                _logger.LogInformation("Skipping inject '{Step}': Target '{Target}' not found in manifest", step.Name, step.Target);
                 return;
             }
 
@@ -187,13 +192,13 @@ public sealed class StepExecutor
 
         if (string.IsNullOrEmpty(targetPath) || !File.Exists(targetPath))
         {
-            Console.WriteLine($"[LFT] Skipping inject '{step.Name}': Target file not found");
+            _logger.LogInformation("Skipping inject '{Step}': Target file not found", step.Name);
             return;
         }
 
         if (!_codeInjector.CanHandle(targetPath))
         {
-            Console.WriteLine($"[LFT] Skipping inject '{step.Name}': Injector cannot handle file type.");
+            _logger.LogInformation("Skipping inject '{Step}': Injector cannot handle file type.", step.Name);
             return;
         }
 
@@ -219,16 +224,16 @@ public sealed class StepExecutor
             {
                 // Add as a modified file (will be written by the pipeline)
                 files.Add(new GeneratedFile(targetPath, newSource, isModification: true));
-                Console.WriteLine($"[LFT] Injected: {snippet.Trim().Split('\n')[0]}... → {Path.GetFileName(targetPath)}");
+                _logger.LogInformation("Injected snippet into {Target}", Path.GetFileName(targetPath));
             }
             else
             {
-                Console.WriteLine($"[LFT] Skipped (already exists): {Path.GetFileName(targetPath)}");
+                _logger.LogInformation("Skipped injection (already exists): {Target}", Path.GetFileName(targetPath));
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LFT] Inject failed for '{step.Name}': {ex.Message}");
+            _logger.LogError(ex, "Inject failed for '{Step}'", step.Name);
         }
     }
 
@@ -241,7 +246,7 @@ public sealed class StepExecutor
     {
         if (_codeInjector == null)
         {
-            Console.WriteLine($"[LFT] Skipping ast-insert step '{step.Name}': No code injector configured.");
+            _logger.LogInformation("Skipping ast-insert step '{Step}': No code injector configured.", step.Name);
             return;
         }
 
@@ -283,27 +288,33 @@ public sealed class StepExecutor
                 // Determine where to place the new file
                 var newFilePath = ResolvePathByDiscovery(outputFileName, profileRoot ?? "");
                 files.Add(new GeneratedFile(newFilePath, rendered));
-                Console.WriteLine($"[LFT] Created: {Path.GetFileName(newFilePath)}");
+                _logger.LogInformation("Created: {File}", Path.GetFileName(newFilePath));
 
                 // Update target path to the newly created file path
                 targetPath = newFilePath;
             }
             else
             {
-                Console.WriteLine($"[LFT] Skipping ast-insert '{step.Name}': CreateFileSource not found: {step.CreateFileSource}");
+                _logger.LogInformation(
+                    "Skipping ast-insert '{Step}': CreateFileSource not found: {Source}",
+                    step.Name,
+                    step.CreateFileSource);
                 return;
             }
         }
 
         if (string.IsNullOrEmpty(targetPath) || !File.Exists(targetPath))
         {
-            Console.WriteLine($"[LFT] Skipping ast-insert '{step.Name}': Target file not found: {outputFileName}");
+            _logger.LogInformation(
+                "Skipping ast-insert '{Step}': Target file not found: {Output}",
+                step.Name,
+                outputFileName);
             return;
         }
 
         if (!_codeInjector.CanHandle(targetPath))
         {
-            Console.WriteLine($"[LFT] Skipping ast-insert '{step.Name}': Injector cannot handle file type.");
+            _logger.LogInformation("Skipping ast-insert '{Step}': Injector cannot handle file type.", step.Name);
             return;
         }
 
@@ -319,7 +330,7 @@ public sealed class StepExecutor
             var queryPattern = _renderer.Render(queryPatternObj?.ToString() ?? "", varDict);
             if (!string.IsNullOrEmpty(queryPattern) && sourceCode.Contains(queryPattern))
             {
-                Console.WriteLine($"[LFT] Skipped (already exists): {queryPattern}");
+                _logger.LogInformation("Skipped (already exists): {Query}", queryPattern);
                 return;
             }
         }
@@ -360,16 +371,16 @@ public sealed class StepExecutor
             if (newSource != sourceCode)
             {
                 files.Add(new GeneratedFile(targetPath, newSource, isModification: true));
-                Console.WriteLine($"[LFT] Injected: {snippet.Trim().Split('\n')[0]}... → {Path.GetFileName(targetPath)}");
+                _logger.LogInformation("Injected snippet into {Target}", Path.GetFileName(targetPath));
             }
             else
             {
-                Console.WriteLine($"[LFT] Skipped (no change): {Path.GetFileName(targetPath)}");
+                _logger.LogInformation("Skipped injection (no change): {Target}", Path.GetFileName(targetPath));
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LFT] Inject failed for '{step.Name}': {ex.Message}");
+            _logger.LogError(ex, "Inject failed for '{Step}'", step.Name);
         }
     }
 
@@ -477,7 +488,7 @@ public sealed class StepExecutor
                     finalPath = Path.Combine(resolution.Directory, justFileName);
                 }
 
-                Console.WriteLine($"[LFT] Discovered: {Path.GetFileName(resolution.Directory)}/ → {outputFileName}");
+                _logger.LogInformation("Discovered {Directory}/ → {Output}", Path.GetFileName(resolution.Directory), outputFileName);
                 return finalPath;
             }
         }

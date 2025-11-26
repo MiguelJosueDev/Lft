@@ -1,10 +1,19 @@
 using Lft.Ast.CSharp;
 using Lft.Domain.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.App.Pipelines.Steps.Strategies;
 
 public class ServiceInjectionStrategy : IInjectionStrategy
 {
+    private readonly ILogger<ServiceInjectionStrategy> _logger;
+
+    public ServiceInjectionStrategy(ILogger<ServiceInjectionStrategy>? logger = null)
+    {
+        _logger = logger ?? NullLogger<ServiceInjectionStrategy>.Instance;
+    }
+
     public bool CanHandle(GeneratedFile file)
     {
         return file.Path.Contains("Service") && file.Path.EndsWith(".cs");
@@ -33,7 +42,7 @@ public class ServiceInjectionStrategy : IInjectionStrategy
 
         if (!targetFiles.Any())
         {
-            Console.WriteLine("[WARN] No Service ServiceRegistrationExtensions found.");
+            _logger.LogWarning("No Service ServiceRegistrationExtensions found.");
             return;
         }
 
@@ -51,7 +60,7 @@ public class ServiceInjectionStrategy : IInjectionStrategy
             Position: CodeInjectionPosition.End
         );
 
-        Console.WriteLine($"[INFO] Injecting service registration for {entity} into {targetFile}");
+        _logger.LogInformation("Injecting service registration for {Entity} into {File}", entity, targetFile);
         await injector.InjectIntoMethodAsync(injectionRequest, ct);
     }
 }

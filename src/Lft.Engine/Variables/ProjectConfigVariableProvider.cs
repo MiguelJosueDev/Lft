@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Lft.Domain.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.Engine.Variables;
 
@@ -13,10 +15,12 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
     private const string ConfigFileName = "lft.config.json";
 
     private readonly string? _profileName;
+    private readonly ILogger<ProjectConfigVariableProvider> _logger;
 
-    public ProjectConfigVariableProvider(string? profileName = null)
+    public ProjectConfigVariableProvider(string? profileName = null, ILogger<ProjectConfigVariableProvider>? logger = null)
     {
         _profileName = profileName;
+        _logger = logger ?? NullLogger<ProjectConfigVariableProvider>.Instance;
     }
 
     public void Populate(VariableContext ctx, GenerationRequest request)
@@ -55,7 +59,7 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
         if (!string.IsNullOrEmpty(profileRoot))
         {
             ctx.Set("_ProfileRoot", profileRoot);
-            Console.WriteLine($"[LFT] Profile root: {profileRoot}");
+            _logger.LogInformation("Profile root: {ProfileRoot}", profileRoot);
         }
     }
 
@@ -116,7 +120,7 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LFT] Warning: Failed to parse {configPath}: {ex.Message}");
+            _logger.LogWarning(ex, "Failed to parse {ConfigPath}", configPath);
             return null;
         }
     }
@@ -131,7 +135,10 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
 
             if (profile == null)
             {
-                Console.WriteLine($"[LFT] Warning: Profile '{_profileName}' not found in config. Available: {string.Join(", ", profiles.Select(p => p.Profile))}");
+                _logger.LogWarning(
+                    "Profile '{Profile}' not found in config. Available: {Profiles}",
+                    _profileName,
+                    string.Join(", ", profiles.Select(p => p.Profile)));
             }
             return profile;
         }

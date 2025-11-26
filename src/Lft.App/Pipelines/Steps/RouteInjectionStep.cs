@@ -1,15 +1,19 @@
 using Lft.Ast.CSharp;
 using Lft.Domain.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.App.Pipelines.Steps;
 
 public sealed class RouteInjectionStep : IGenerationStep
 {
     private readonly ICSharpInjectionService _injectionService;
+    private readonly ILogger<RouteInjectionStep> _logger;
 
-    public RouteInjectionStep(ICSharpInjectionService injectionService)
+    public RouteInjectionStep(ICSharpInjectionService injectionService, ILogger<RouteInjectionStep>? logger = null)
     {
         _injectionService = injectionService;
+        _logger = logger ?? NullLogger<RouteInjectionStep>.Instance;
     }
 
     public async Task ExecuteAsync(GenerationRequest request, GenerationResult result, CancellationToken ct = default)
@@ -24,12 +28,12 @@ public sealed class RouteInjectionStep : IGenerationStep
 
         if (files.Length == 0)
         {
-            Console.WriteLine($"[WARN] No {searchPattern} found. Skipping route injection.");
+            _logger.LogWarning("No {Pattern} found. Skipping route injection.", searchPattern);
             return;
         }
 
         var targetFile = files[0];
-        Console.WriteLine($"[INFO] Found routes extension file: {targetFile}");
+        _logger.LogInformation("Found routes extension file: {File}", targetFile);
 
         var entityName = request.EntityName;
         var snippet = $"endpoints.Map{entityName}sEndpoints();";
@@ -48,11 +52,11 @@ public sealed class RouteInjectionStep : IGenerationStep
         try
         {
             await _injectionService.InjectIntoMethodAsync(injectionRequest, ct);
-            Console.WriteLine($"[INFO] Injected route mapping for '{entityName}' into '{targetFile}'.");
+            _logger.LogInformation("Injected route mapping for '{Entity}' into '{File}'.", entityName, targetFile);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[WARN] Failed to inject route mapping: {ex.Message}");
+            _logger.LogWarning(ex, "Failed to inject route mapping");
         }
     }
 }

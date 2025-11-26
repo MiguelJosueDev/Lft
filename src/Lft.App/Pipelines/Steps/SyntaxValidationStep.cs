@@ -1,20 +1,24 @@
 using Lft.Ast.CSharp;
 using Lft.Domain.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.App.Pipelines.Steps;
 
 public sealed class SyntaxValidationStep : IGenerationStep
 {
     private readonly ICSharpSyntaxValidator _validator;
+    private readonly ILogger<SyntaxValidationStep> _logger;
 
-    public SyntaxValidationStep(ICSharpSyntaxValidator validator)
+    public SyntaxValidationStep(ICSharpSyntaxValidator validator, ILogger<SyntaxValidationStep>? logger = null)
     {
         _validator = validator;
+        _logger = logger ?? NullLogger<SyntaxValidationStep>.Instance;
     }
 
     public Task ExecuteAsync(GenerationRequest request, GenerationResult result, CancellationToken ct = default)
     {
-        Console.WriteLine("[LFT] Validating generated code syntax...");
+        _logger.LogInformation("Validating generated code syntax...");
         var hasErrors = false;
 
         foreach (var file in result.Files)
@@ -25,10 +29,10 @@ public sealed class SyntaxValidationStep : IGenerationStep
                 if (errors.Any())
                 {
                     hasErrors = true;
-                    Console.WriteLine($"[ERROR] Syntax errors in {file.Path}:");
+                    _logger.LogError("Syntax errors in {FilePath}:", file.Path);
                     foreach (var error in errors)
                     {
-                        Console.WriteLine($"  - {error}");
+                        _logger.LogError("  - {Error}", error);
                     }
                 }
             }
@@ -36,11 +40,11 @@ public sealed class SyntaxValidationStep : IGenerationStep
 
         if (!hasErrors)
         {
-            Console.WriteLine("[INFO] Syntax validation passed.");
+            _logger.LogInformation("Syntax validation passed.");
         }
         else
         {
-            Console.WriteLine("[WARN] Syntax validation failed for some files.");
+            _logger.LogWarning("Syntax validation failed for some files.");
         }
 
         return Task.CompletedTask;

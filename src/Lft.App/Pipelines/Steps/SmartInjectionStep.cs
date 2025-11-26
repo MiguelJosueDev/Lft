@@ -1,6 +1,8 @@
 using Lft.App.Pipelines.Steps.Strategies;
 using Lft.Ast.CSharp;
 using Lft.Domain.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.App.Pipelines.Steps;
 
@@ -8,16 +10,21 @@ public sealed class SmartInjectionStep : IGenerationStep
 {
     private readonly ICSharpInjectionService _injector;
     private readonly IEnumerable<IInjectionStrategy> _strategies;
+    private readonly ILogger<SmartInjectionStep> _logger;
 
-    public SmartInjectionStep(ICSharpInjectionService injector, IEnumerable<IInjectionStrategy> strategies)
+    public SmartInjectionStep(
+        ICSharpInjectionService injector,
+        IEnumerable<IInjectionStrategy> strategies,
+        ILogger<SmartInjectionStep>? logger = null)
     {
         _injector = injector;
         _strategies = strategies;
+        _logger = logger ?? NullLogger<SmartInjectionStep>.Instance;
     }
 
     public async Task ExecuteAsync(GenerationRequest request, GenerationResult result, CancellationToken ct = default)
     {
-        Console.WriteLine("[LFT] Running Smart Dependency Injection...");
+        _logger.LogInformation("Running Smart Dependency Injection...");
 
         foreach (var file in result.Files)
         {
@@ -31,7 +38,7 @@ public sealed class SmartInjectionStep : IGenerationStep
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[WARN] Injection failed for {file.Path}: {ex.Message}");
+                        _logger.LogWarning(ex, "Injection failed for {File}", file.Path);
                     }
                 }
             }

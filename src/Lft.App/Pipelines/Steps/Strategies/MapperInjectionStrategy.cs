@@ -1,16 +1,20 @@
 using Lft.Ast.CSharp;
 using Lft.Domain.Models;
 using Lft.App.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.App.Pipelines.Steps.Strategies;
 
 public class MapperInjectionStrategy : IInjectionStrategy
 {
     private readonly ISmartPathResolver _pathResolver;
+    private readonly ILogger<MapperInjectionStrategy> _logger;
 
-    public MapperInjectionStrategy(ISmartPathResolver pathResolver)
+    public MapperInjectionStrategy(ISmartPathResolver pathResolver, ILogger<MapperInjectionStrategy>? logger = null)
     {
         _pathResolver = pathResolver;
+        _logger = logger ?? NullLogger<MapperInjectionStrategy>.Instance;
     }
 
     public bool CanHandle(GeneratedFile file)
@@ -32,7 +36,7 @@ public class MapperInjectionStrategy : IInjectionStrategy
 
         if (resolution == null)
         {
-            Console.WriteLine("[WARN] No MappingProfile found.");
+            _logger.LogWarning("No MappingProfile found.");
             return;
         }
 
@@ -40,7 +44,7 @@ public class MapperInjectionStrategy : IInjectionStrategy
 
         if (!targetFiles.Any())
         {
-            Console.WriteLine($"[WARN] No MappingProfile found in {resolution.Directory}.");
+            _logger.LogWarning("No MappingProfile found in {Directory}.", resolution.Directory);
             return;
         }
 
@@ -59,7 +63,7 @@ public class MapperInjectionStrategy : IInjectionStrategy
             Position: CodeInjectionPosition.End
         );
 
-        Console.WriteLine($"[INFO] Injecting mapping for {entity} into {targetFile}");
+        _logger.LogInformation("Injecting mapping for {Entity} into {File}", entity, targetFile);
 
         await injector.InjectIntoMethodAsync(injectionRequest, ct);
     }
