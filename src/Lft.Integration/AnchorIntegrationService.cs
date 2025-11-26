@@ -19,9 +19,13 @@ public class AnchorIntegrationService : IFileIntegrationService
         var oldContent = await File.ReadAllTextAsync(filePath, ct);
 
         // 1. Idempotency Check
-        if (options.CheckIdempotency && oldContent.Contains(newFragment.Trim()))
+        if (options.CheckIdempotency)
         {
-            return new FileChangePlan(filePath, oldContent, oldContent, ChangeType.Skip);
+            // For full file replacements (like AST injections), compare entire content
+            if (NormalizeContent(oldContent) == NormalizeContent(newFragment))
+            {
+                return new FileChangePlan(filePath, oldContent, oldContent, ChangeType.Skip);
+            }
         }
 
         // 2. Strategy Execution
@@ -30,6 +34,7 @@ public class AnchorIntegrationService : IFileIntegrationService
             IntegrationStrategy.Anchor => ApplyAnchorStrategy(filePath, oldContent, newFragment, options),
             IntegrationStrategy.Append => new FileChangePlan(filePath, oldContent, oldContent + Environment.NewLine + newFragment, ChangeType.Modify),
             IntegrationStrategy.Prepend => new FileChangePlan(filePath, oldContent, newFragment + Environment.NewLine + oldContent, ChangeType.Modify),
+            IntegrationStrategy.Replace => new FileChangePlan(filePath, oldContent, newFragment, ChangeType.Modify),
             _ => throw new NotImplementedException($"Strategy {options.Strategy} not implemented yet.")
         };
     }
@@ -60,5 +65,11 @@ public class AnchorIntegrationService : IFileIntegrationService
         sb.Replace(options.AnchorToken, replacement);
 
         return new FileChangePlan(filePath, oldContent, sb.ToString(), ChangeType.Modify);
+    }
+
+    private static string NormalizeContent(string content)
+    {
+        // Normalize line endings and trim for comparison
+        return content.Replace("\r\n", "\n").Trim();
     }
 }

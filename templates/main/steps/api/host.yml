@@ -29,8 +29,9 @@ steps:
   - name: Register Routes
     action: ast-insert
     def: api-module
-    output: Extensions/{{ _MainModuleName }}Routes{{ RoutesExtensionSuffix }}.cs
-    targetMethod: "Add{{ _MainModuleName }}Routes"
+    # Use discovered file path from injection point
+    output: "{{ _InjectRouteRegistrationPath }}"
+    targetMethod: "{{ _InjectRouteRegistrationMethod }}"
     insertionType: "InMethod"
     idempotent: true
     parameters:
@@ -44,8 +45,9 @@ steps:
   - name: Register Endpoints
     action: ast-insert
     def: api-module
-    output: Extensions/{{ _MainModuleName }}ServicesExtensions.cs
-    targetMethod: "Add{{ _MainModuleName }}Services"
+    # Use discovered file path from injection point
+    output: "{{ _InjectEndpointRegistrationPath }}"
+    targetMethod: "{{ _InjectEndpointRegistrationMethod }}"
     insertionType: "InMethod"
     idempotent: true
     parameters:

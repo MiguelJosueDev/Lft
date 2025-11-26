@@ -9,20 +9,23 @@ public class GenPipeline
     private readonly ICodeGenerationEngine _engine;
     private readonly IFileIntegrationService _integrationService;
     private readonly IFileWriter _writer;
+    private readonly IEnumerable<IGenerationStep> _steps;
 
     public GenPipeline(
         ICodeGenerationEngine engine,
         IFileIntegrationService integrationService,
-        IFileWriter writer)
+        IFileWriter writer,
+        IEnumerable<IGenerationStep> steps)
     {
         _engine = engine;
         _integrationService = integrationService;
         _writer = writer;
+        _steps = steps;
     }
 
     public async Task ExecuteAsync(GenerationRequest request, bool dryRun, CancellationToken ct = default)
     {
-        // 1. Generate (In-Memory)
+        // 1. Generate (In-Memory) - paths are resolved by StepExecutor
         var result = await _engine.GenerateAsync(request, ct);
 
         if (result.Files.Count == 0)
@@ -35,12 +38,14 @@ public class GenPipeline
         var plans = new List<FileChangePlan>();
         foreach (var file in result.Files)
         {
-            var fullPath = Path.Combine(request.OutputDirectory ?? Directory.GetCurrentDirectory(), file.Path);
+            // Paths come correctly resolved from StepExecutor
+            var fullPath = file.Path;
 
             // Calculate plan (Create or Modify)
+            // Use Replace strategy for injected files, Anchor for others
             var options = new IntegrationOptions
             {
-                Strategy = IntegrationStrategy.Anchor,
+                Strategy = file.IsModification ? IntegrationStrategy.Replace : IntegrationStrategy.Anchor,
                 CheckIdempotency = true
             };
             var plan = await _integrationService.IntegrateAsync(fullPath, file.Content, options, ct);
@@ -67,7 +72,6 @@ public class GenPipeline
                 {
                     Console.WriteLine("Action: Modify existing file (Anchor insertion)");
                 }
-                // In a real diff tool we would show the diff here.
             }
         }
         else
@@ -82,6 +86,16 @@ public class GenPipeline
                 }
 
                 await _writer.WriteFileAsync(plan.Path, plan.NewContent, overwrite: true);
+            }
+
+            // 4. Post-Generation Steps
+            if (_steps.Any())
+            {
+                Console.WriteLine("\n[LFT] Running post-generation steps...");
+                foreach (var step in _steps)
+                {
+                    await step.ExecuteAsync(request, result, ct);
+                }
             }
         }
     }

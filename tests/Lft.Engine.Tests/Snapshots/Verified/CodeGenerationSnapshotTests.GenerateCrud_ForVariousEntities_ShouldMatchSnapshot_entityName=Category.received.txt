@@ -1,0 +1,503 @@
+﻿{
+  CategoriesRepository.cs:
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace Lft.Generated.Repositories.SqlServer;
+
+public interface ICategoriesRepository : IRepository<CategoryModel, long>
+{
+
+}
+
+public class CategoriesRepository(
+    IConnectionFactory connectionFactory,
+    IMapper mapper,
+    ILogger<CategoryEntity> logger,
+    IUnitOfWork unitOfWork)
+    : BaseRepository<CategoryModel, CategoryEntity, long>(connectionFactory, mapper, logger, unitOfWork),
+        ICategoriesRepository
+{
+}
+,
+  CategoriesService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class CategoriesService(
+    ICategoriesRepository repository,
+    ILogger<CategoryModel> logger)
+    : BaseModelService<ICategoriesRepository, CategoryModel, long>(repository, logger), ICategoriesService
+{
+}
+,
+  CategoryModel.cs:
+namespace Lft.Generated.Models;
+
+public class CategoryModel
+{
+    public long Id { get; set; }
+
+}
+,
+  core/services/CategoriesService.js:
+import { ReactiveService } from '@livefree/reactive';
+import { GeneratedSDK } from 'sdk/GeneratedSDK';
+import { GeneratedConfig } from 'core/config';
+const CategoriesClient = GeneratedSDK.CategoriesClient;
+
+export const CategoriesService = new (ReactiveService('categories', CategoriesClient, {
+  recursive: true,
+  recurseDepth: 2,
+}))(GeneratedConfig);
+
+export const CategoriesReactor = CategoriesService.reactor('categoriesReactor', {
+  success: (response, services, db) => {
+    const { source, args, payload } = response;
+
+    switch (source) {
+
+      case CategoriesService.getCategory:
+        return db.categories.put(payload);
+
+      case CategoriesService.createCategory:
+        services.alerts.actionSuccess(`Category added successfully`, 'categories', response);
+        return db.categories.add(payload);
+
+      case CategoriesService.updateCategory:
+        services.alerts.actionSuccess(`Category updated successfully`, 'categories', response);
+        return db.categories.put(payload);
+
+      case CategoriesService.deleteCategory:
+        services.alerts.actionSuccess(`Category deleted successfully`, 'categories', response);
+        return db.categories.delete(args[0]);
+    }
+  },
+  error: (response, services) => {
+    switch (response.source) {
+
+      case CategoriesService.getCategory:
+        return services.alerts.actionError(`Failed to fetch Category details`, 'categories', response);
+
+      case CategoriesService.createCategory:
+        return services.alerts.actionError(`Failed to create Category`, 'categories', response);
+
+      case CategoriesService.updateCategory:
+        return services.alerts.actionError(`Failed to update Category`, 'categories', response);
+
+      case CategoriesService.deleteCategory:
+        return services.alerts.actionError(`Failed to delete Category`, 'categories', response);
+    }
+  },
+});
+,
+  Endpoints/CategoriesEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface ICategoriesEndpoint : IModelEndpoint<CategoryModel, long>
+{
+}
+
+public class CategoriesEndpoint(
+    ICategoriesService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<CategoryModel, ICategoriesService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), ICategoriesEndpoint
+{
+
+}
+,
+  Entities/CategoryEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Category - Review Entity Configuration
+[Table("Category", Schema = "dbo")]
+public class CategoryEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  features/categories/components/CategoriesList.jsx:
+import { useCallback } from 'react';
+import { TableRow, TableColumn, TableCell } from '@heroui/react';;
+import { RequestBrokerDataTable } from '@livefree/react-ui';
+
+const columns = [
+  { propertyName: 'id', name: 'Id', isSortable: true },
+];
+
+export const CategoriesList = ({ categories = [], filters, onSelect }) => {
+  const renderCell = useCallback((row, columnKey) => {
+    const cellValue = row[columnKey];
+
+    switch (columnKey) {
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  return (
+    <RequestBrokerDataTable
+      columns={columns}
+      items={ categories }
+      filters={filters}
+      renderColumn={column => (
+        <TableColumn
+          key={column.propertyName}
+          allowsSorting={column?.isSortable}
+        >
+          {column.name}
+        </TableColumn>
+      )}
+      renderRow={row => (
+        <TableRow key={row.id} onClick={() => onSelect(row)}>
+          {columnKey => <TableCell key={columnKey}>{renderCell(row, columnKey)}</TableCell>}
+        </TableRow>
+      )}
+      withPagination
+      withSorting
+      withColumnSelection
+    />
+  );
+};
+,
+  features/categories/components/CategoryForm.jsx:
+import { Uniformly } from '@livefree/uniformly';
+import { FieldStatus, TextField } from '@livefree/react-ui';
+
+export const CategoryForm = ({ category = {}, onChange }) => (
+  <Uniformly
+    className="flex flex-col flex-grow gap-2"
+    onChange={onChange}
+  >
+  </Uniformly>
+);
+,
+  features/categories/components/index.js:
+export * from './CategoriesList';
+export * from './CategoryForm';
+,
+  features/categories/controllers/CategoriesListController.jsx:
+import { useCallback } from 'react';
+import { Reactive } from '@livefree/reactive';
+import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
+import { CategoriesList } from 'features/categories/components';
+
+export const CategoriesListController = Reactive(
+  ({ data, services, monitors, db, onSelect }) => {
+    const { categories } = data;
+
+    const handleExecute = useCallback((action, metadata) => {
+      action(metadata);
+    }, []);
+
+    return (
+      <RequestBroker
+        actionKey="queryCategories"
+        action={services.categories.queryCategories}
+        defaultSorting={ { propertyName: 'id', sortType: false } }
+        defaultPaging={ { skip: 0, take: 50, page: 1, totalCount: 0 } }
+        isExecuting={monitors.queryCategories.executing}
+        skipInitial={() => db.categories.toCollection().count()}
+        onExecute={handleExecute}
+      >
+        <CategoriesList
+          categories={ categories }
+          isExecuting={monitors.queryCategories.executing}
+          onSelect={item => onSelect && onSelect(item)}
+        />
+      </RequestBroker>
+    );
+  },
+  {
+    name: 'CategoriesListController',
+    queries: (_, services) => [
+      {
+        name: 'categories',
+        execute: db =>
+          queryDexieWithMetadata(db, services.categories.queryCategories.action, () => db.categories, {
+            sorting: true,
+          }),
+        deps: [],
+      },
+    ],
+    monitors: services => [services.categories.queryCategories],
+  },
+);
+,
+  features/categories/controllers/CategoryCreateController.jsx:
+import { useState } from 'react';
+import { Button } from '@heroui/react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { SaveButton, withModalController } from '@livefree/react-ui';
+import { CategoryForm } from 'features/categories/components';
+
+const CategoryCreateController = Reactive(
+  ({ services, monitors, onSuccess, onClose }) => {
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.categories, 'createCategory', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <CategoryForm onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <Button size="sm" onPress={() => onClose && onClose()} color="default" variant="light">
+            Cancel
+          </Button>
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.categories.createCategory(form.data)
+            }
+            isLoading={monitors.createCategory.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'CategoryCreateController',
+    monitors: services => [services.categories.createCategory],
+  },
+);
+
+CategoryCreateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <CategoryCreateController onSuccess={onSuccess} {...props} />
+));
+
+export { CategoryCreateController };
+,
+  features/categories/controllers/CategoryUpdateController.jsx:
+import { useState } from 'react';
+import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
+import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
+import { CategoryForm } from 'features/categories/components';
+
+const CategoryUpdateController = Reactive(
+  ({ services, data, monitors, categoryId, onSuccess, onClose }) => {
+    const { category } = data;
+    const [form, setForm] = useState({});
+
+    useReactorOnSuccess(services.categories, 'updateCategory', payload => {
+      onSuccess && onSuccess(payload);
+    });
+
+    useReactorOnSuccess(services.categories, 'deleteCategory', () => {
+      onClose && onClose();
+    });
+
+    return (
+      <div className="flex flex-col gap-2">
+        <CategoryForm category={ category } onChange={setForm} />
+        <div className="flex justify-between gap-2">
+          <DeleteButton
+            size="sm"
+            onPress={() => services.categories.deleteCategory(categoryId)}
+            isLoading={monitors.deleteCategory.executing}
+          />
+          <SaveButton
+            size="sm"
+            isDisabled={!form.isValid}
+            onPress={() =>
+              services.categories.updateCategory(categoryId, form.data)
+            }
+            isLoading={monitors.updateCategory.executing}
+          />
+        </div>
+      </div>
+    );
+  },
+  {
+    name: 'CategoryUpdateController',
+    sync: (services, { categoryId }) => [
+      {
+        execute: () => services.categories.getCategory(categoryId),
+        deps: [categoryId],
+      },
+    ],
+    queries: ({ categoryId }) => [
+      {
+        name: 'category',
+        defaultValue: {},
+        execute: db => db.categories.get(categoryId),
+        deps: [categoryId],
+      },
+    ],
+    monitors: services => [
+      services.categories.updateCategory,
+      services.categories.deleteCategory,
+    ],
+  },
+);
+
+CategoryUpdateController.Modal = withModalController(({ onSuccess, ...props }) => (
+  <CategoryUpdateController onSuccess={onSuccess} {...props} />
+));
+
+export { CategoryUpdateController };
+,
+  features/categories/controllers/index.js:
+export * from './CategoriesListController';
+export * from './CategoryCreateController';
+export * from './CategoryUpdateController';
+,
+  features/categories/views/CategoriesListView.jsx:
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
+import { useSyncCreateItem } from '@livefree/applications';
+import { CategoriesListController } from 'features/categories/controllers';
+import { RoutePaths } from 'features/routing';
+
+export const CategoriesListView = () => {
+  const navigate = useNavigate();
+  useSyncCreateItem('category');
+
+  return (
+    <>
+      <div className="flex flex-row justify-between mb-4">
+        <Breadcrumbs className="content-center">
+          <BreadcrumbItem isDisabled>Generated</BreadcrumbItem>
+          <BreadcrumbItem>Categories</BreadcrumbItem>
+        </Breadcrumbs>
+      </div>
+      <CategoriesListController onSelect={item => navigate(RoutePaths.categories.update(item.id))} />
+      <Outlet />
+    </>
+  );
+};
+,
+  features/categories/views/CategoryCreateView.jsx:
+import { CategoryCreateController } from 'features/categories/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const CategoryCreateView = () => {
+  const navigate = useNavigate();
+
+  return (
+    <CategoryCreateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Create Category"
+      onSuccess={() => navigate(RoutePaths.categories.list())}
+      onClose={() => navigate(RoutePaths.categories.list())}
+    />
+  );
+};
+,
+  features/categories/views/CategoryUpdateView.jsx:
+import { CategoryUpdateController } from 'features/categories/controllers';
+import { useNavigate } from 'react-router-dom';
+import { RoutePaths } from 'features/routing';
+
+export const CategoryUpdateView = ({ categoryId }) => {
+  const parsedId =
+    !isNaN(Number(categoryId)) && categoryId !== '' ? Number(categoryId) : categoryId;
+  const navigate = useNavigate();
+
+  return (
+    <CategoryUpdateController.Modal
+      isOpen={true}
+      isDismissable={false}
+      title="Update Category"
+      categoryId={parsedId}
+      onSuccess={() => navigate(RoutePaths.categories.list())}
+      onClose={() => navigate(RoutePaths.categories.list())}
+    />
+  );
+};
+,
+  features/categories/views/index.js:
+export * from './CategoriesListView';
+export * from './CategoryCreateView';
+export * from './CategoryUpdateView';
+,
+  features/routing/routers/CategoriesRouter.jsx:
+import { Route, Routes } from 'react-router-dom';
+import {
+  CategoriesListView,
+  CategoryCreateView,
+  CategoryUpdateView } from 'features/categories/views';
+import { WithParams } from 'features/routing';
+
+export const CategoriesRouter = () => (
+  <Routes>
+    <Route path="/" element={<CategoriesListView />}>
+      <Route path="create" element={<CategoryCreateView />} />
+      <Route path=":categoryId/update" element={<WithParams element={ CategoryUpdateView } />} />
+    </Route>
+  </Routes>
+);
+,
+  ICategoriesService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Models;
+
+namespace Lft.Generated.Interfaces;
+
+public interface ICategoriesService : IModelService<CategoryModel, long>
+{
+
+}
+,
+  Routes/CategoriesRoutes.cs:
+using LiveFree.Core.AspNetCore.Extensions;
+using LiveFree.Core.AspNetCore.Routing;
+using Lft.Generated.Api.Endpoints;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Lft.Generated.Api.Routes;
+
+public static class CategoriesRoutes
+{
+    public static void MapCategoriesRoutes(
+        this WebApplication app,
+        string basePrefix,
+        string prefix = "categories")
+    {
+        var group = app
+            .MapModelRoutes<CategoryModel, ICategoriesEndpoint, long>(basePrefix, prefix, "Categories")
+            .AddGet()
+            .AddCreate()
+            .AddUpdate()
+            .AddDelete()
+            .Builder
+            .RequireAuthorization();
+
+    }
+}
+
+}

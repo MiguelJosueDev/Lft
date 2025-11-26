@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lft.Domain\Lft.Domain.csproj" />
+    <ProjectReference Include="..\Lft.Discovery\Lft.Discovery.csproj" />
   </ItemGroup>
 
   <ItemGroup>

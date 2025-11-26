@@ -29,6 +29,7 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         var plural = entity.Pluralize();                             // Use Humanizer for proper pluralization
         ctx.Set("_ModuleName", plural);                              // FundingTypes (PascalCase) - for class names
         ctx.Set("_moduleNameCamel", plural.Camelize());              // fundingTypes (camelCase) - for JS services
+        ctx.Set("_routeModuleName", plural.Kebaberize());            // funding-types (kebab-case) - for route prefixes
 
         // Base namespace (can be overridden by lft.config.json)
         ctx.SetDefault("BaseNamespaceName", "Lft.Generated");

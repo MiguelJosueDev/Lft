@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Lft.Ast.CSharp\Lft.Ast.CSharp.csproj" />
     <ProjectReference Include="..\Lft.Domain\Lft.Domain.csproj" />
     <ProjectReference Include="..\Lft.Engine\Lft.Engine.csproj" />
     <ProjectReference Include="..\Lft.Integration\Lft.Integration.csproj" />

@@ -1,45 +1,52 @@
-# Módulo: Analyzer
+# Módulo: Lft.Analyzer.Core (Application Layer)
 
-## Responsabilidad principal
-- Analizar la estructura del proyecto existente.
-- Validar reglas de arquitectura (ej. "Infra no depende de UI").
-- Detectar violaciones de convenciones de nombres.
+## Visión General
+`Lft.Analyzer.Core` es el motor de análisis estático de arquitectura. Su propósito es validar que el código del proyecto cumpla con las reglas arquitectónicas definidas (ej. Clean Architecture), independientemente del lenguaje de programación subyacente.
 
-## Qué NO debe hacer
-- Modificar código.
-- Generar código.
-- ❌ **Anti-ejemplo**: Intentar arreglar automáticamente una violación (eso sería un "Fixer" o "Migrate").
+Este módulo define el modelo abstracto del proyecto (`ArchNode`), las reglas (`IRule`) y el motor de ejecución (`AnalyzerEngine`).
 
-## Proyectos relacionados
-- `Lft.Analyzer.Core`
-- `Lft.Analyzer.CSharp` (Implementación específica).
+## Componentes Principales
 
-## Interfaces y contratos públicos
+### 1. Modelo de Arquitectura (`ArchNode`)
+Representa una unidad de código (clase, interfaz, módulo) de forma agnóstica al lenguaje.
+-   **Propiedades**:
+    -   `Id`: Identificador único (ej. nombre completo de la clase).
+    -   `Layer`: Capa arquitectónica a la que pertenece (Domain, Application, Infrastructure, Presentation).
+    -   `DependsOnIds`: Lista de dependencias hacia otros nodos.
+    -   `Metadata`: Información extra (ej. atributos, modificadores).
 
-### `IArchitectureAnalyzer`
-```csharp
-public interface IArchitectureAnalyzer
-{
-    Task<AnalysisReport> AnalyzeAsync(string projectPath, AnalysisOptions options);
-}
-```
+### 2. Motor de Análisis (`AnalyzerEngine`)
+Orquesta el proceso de validación:
+1.  **Carga**: Utiliza `IProjectModel` (implementado por `Lft.Ast.*`) para cargar todos los archivos del proyecto y convertirlos en una lista de `ArchNode`.
+2.  **Evaluación**: Itera sobre una colección de `IRule` configuradas.
+3.  **Reporte**: Genera un `AnalysisReport` con todas las violaciones encontradas.
 
-## Dependencias permitidas
-- `Lft.Domain`
-- `Lft.Ast.CSharp` (para entender el código).
+### 3. Reglas (`IRule`)
+Define una restricción arquitectónica que debe cumplirse.
+-   **Contrato**: `EvaluateAsync(IEnumerable<ArchNode> nodes) -> IEnumerable<Violation>`.
+-   **Ejemplos de Reglas**:
+    -   `LayerDependencyRule`: Verifica que las dependencias fluyan en la dirección correcta (ej. Domain no debe depender de Infrastructure).
+    -   `NamingConventionRule`: Verifica que las clases sigan convenciones de nombres (ej. Interfaces empiezan con 'I').
 
-## Patrones internos
-- **Visitor**: Para recorrer el AST y verificar reglas.
-- **Rule Engine**: Motor para ejecutar lista de reglas configuradas.
+### 4. Reporte (`AnalysisReport`)
+Contiene el resultado del análisis:
+-   `Violations`: Lista de problemas encontrados, con severidad y ubicación.
+-   `Score`: Puntuación de salud arquitectónica (opcional).
 
-## Flujos típicos
+## Interacción con otras Capas
+-   **Usa**: `Lft.Ast.CSharp` (o JS) para poblar el modelo de nodos.
+-   **Es usado por**: `Lft.Cli` (comando `lft analyze`) y `Lft.Migrate` (para evaluar el estado antes de migrar).
 
-### Ejecutar Análisis
-1. Cargar configuración de reglas (`lft.arch.yml`).
-2. Parsear solución/proyecto para construir grafo de dependencias.
-3. Evaluar cada regla contra el grafo.
-4. Generar reporte de violaciones.
+## Extensibilidad
+Para agregar una nueva regla:
+1.  Implementar la interfaz `IRule`.
+2.  Definir la lógica de evaluación sobre los `ArchNode`.
+3.  Registrar la regla en la configuración del `AnalyzerEngine`.
 
-## Open questions / TODOs
-- [ ] Definir formato de `lft.arch.yml`.
-- [ ] Soporte para "suppressions" (ignorar reglas específicas).
+## Ejemplo de Flujo
+1.  Usuario ejecuta `lft analyze`.
+2.  `AnalyzerEngine` llama a `CSharpCodebaseLoader` (de `Lft.Ast.CSharp`).
+3.  El loader parsea los `.cs` y devuelve una lista de `ArchNode` con sus dependencias resueltas.
+4.  `AnalyzerEngine` ejecuta `LayerDependencyRule`.
+5.  La regla detecta que `UserEntity` (Domain) depende de `SqlDataReader` (Infrastructure).
+6.  Se genera una `Violation` y se muestra en el reporte final.

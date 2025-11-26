@@ -5,12 +5,25 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>lft</ToolCommandName>
+    <PackageId>lft</PackageId>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Lft.Domain\Lft.Domain.csproj" />
     <ProjectReference Include="..\Lft.Engine\Lft.Engine.csproj" />
     <ProjectReference Include="..\Lft.App\Lft.App.csproj" />
+    <ProjectReference Include="..\Lft.Discovery\Lft.Discovery.csproj" />
+  </ItemGroup>
+
+  <!-- Include templates folder in the tool package (pack only, not in build output) -->
+  <ItemGroup>
+    <None Include="..\..\templates\**\*" Exclude="..\..\templates\**\.DS_Store">
+      <Pack>true</Pack>
+      <PackagePath>tools\net10.0\any\templates\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

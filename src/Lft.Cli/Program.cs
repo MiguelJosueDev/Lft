@@ -1,10 +1,16 @@
-﻿using Lft.Domain.Models;
+using Lft.Discovery;
+using Lft.Domain.Models;
+using Lft.Domain.Services;
 using Lft.Engine;
 using Lft.Engine.Templates;
 using Lft.Engine.Variables;
 using Lft.Engine.Steps;
 using Lft.App.Pipelines;
 using Lft.Integration;
+using Lft.Ast.CSharp;
+using Lft.App.Pipelines.Steps;
+using Lft.App.Pipelines.Steps.Strategies;
+using Lft.App.Services;
 
 if (args.Length == 0)
 {
@@ -74,7 +80,8 @@ static async Task HandleGenCommand(string[] args)
         language: language,
         outputDirectory: Directory.GetCurrentDirectory(),
         commandName: "crud",
-        templatePack: "main"
+        templatePack: "main",
+        profile: profile
     );
 
     // Setup dependencies (Manual DI for now)
@@ -99,26 +106,44 @@ static async Task HandleGenCommand(string[] args)
     }
 
     var packLoader = new TemplatePackLoader(templatesRoot);
+
+    // Path Resolver (implements both ISmartPathResolver and IPathResolver)
+    var pathResolver = new SuffixBasedPathResolver();
+
     var variableResolver = new VariableResolver(new IVariableProvider[]
     {
         new CliVariableProvider(),
         new ProjectConfigVariableProvider(profile),  // Load from lft.config.json first
         new ConventionsVariableProvider(),           // Then apply conventions (can use config values)
+        new SmartContextVariableProvider(pathResolver, Directory.GetCurrentDirectory(), profile)
     });
     var renderer = new LiquidTemplateRenderer();
-    var stepExecutor = new StepExecutor(templatesRoot, renderer);
+
+    // StepExecutor now receives the path resolver for discovery mode and code injector
+    var codeInjector = new CSharpCodeInjector();
+    var stepExecutor = new StepExecutor(templatesRoot, renderer, pathResolver, codeInjector);
+
+    // Project analyzer for intelligent discovery
+    var projectAnalyzer = new ProjectAnalyzer();
 
     ICodeGenerationEngine engine = new TemplateCodeGenerationEngine(
         packLoader,
         variableResolver,
-        stepExecutor
+        stepExecutor,
+        projectAnalyzer
     );
 
     IFileWriter fileWriter = new DiskFileWriter();
     IFileIntegrationService integrationService = new AnchorIntegrationService();
 
-    // Pipeline
-    var pipeline = new GenPipeline(engine, integrationService, fileWriter);
+    // Syntax validation step (injections now happen via template 'inject' action)
+    ICSharpSyntaxValidator syntaxValidator = new CSharpSyntaxValidator();
+    var validationStep = new SyntaxValidationStep(syntaxValidator);
+
+    var steps = new IGenerationStep[] { validationStep };
+
+    // Pipeline (no longer needs pathResolver - StepExecutor handles path resolution)
+    var pipeline = new GenPipeline(engine, integrationService, fileWriter, steps);
 
     Console.WriteLine($"[LFT] Generating CRUD for entity '{entityName}' (lang: {language})...");
 

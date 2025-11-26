@@ -6,7 +6,7 @@ namespace Lft.Engine.Variables;
 
 /// <summary>
 /// Loads variables from lft.config.json files found in the output directory hierarchy.
-/// Supports multiple profiles and definition paths.
+/// Uses dynamic discovery to determine where files should be placed.
 /// </summary>
 public sealed class ProjectConfigVariableProvider : IVariableProvider
 {
@@ -24,7 +24,6 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
         var configPath = FindConfigFile(request.OutputDirectory);
         if (configPath == null)
         {
-            // No config file found - that's OK, ConventionsVariableProvider has defaults
             return;
         }
 
@@ -40,11 +39,9 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
             return;
         }
 
-        // Set the config root (directory containing lft.config.json)
         var configRoot = Path.GetDirectoryName(configPath)!;
         ctx.Set("_ConfigRoot", configRoot);
 
-        // Populate params as variables
         if (profile.Params != null)
         {
             foreach (var (key, value) in profile.Params)
@@ -53,17 +50,34 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
             }
         }
 
-        // Populate definition paths (store raw paths - they contain Liquid templates like {{BaseNamespaceName}})
-        // The StepExecutor will render these paths when resolving output locations
-        if (profile.Defs != null)
+        var profileRoot = DetermineProfileRoot(profile, configRoot);
+
+        if (!string.IsNullOrEmpty(profileRoot))
         {
-            foreach (var def in profile.Defs)
+            ctx.Set("_ProfileRoot", profileRoot);
+            Console.WriteLine($"[LFT] Profile root: {profileRoot}");
+        }
+    }
+
+    private static string? DetermineProfileRoot(LftProfile profile, string configRoot)
+    {
+        // 1. Explicit root property
+        if (!string.IsNullOrEmpty(profile.Root))
+        {
+            return Path.GetFullPath(Path.Combine(configRoot, profile.Root));
+        }
+
+        // 2. Infer from profile name (e.g., "transactions-app" -> "apps/transactions-app/")
+        if (!string.IsNullOrEmpty(profile.Profile))
+        {
+            var possibleRoot = Path.Combine(configRoot, "apps", profile.Profile);
+            if (Directory.Exists(possibleRoot))
             {
-                // Store the raw path (with Liquid variables) - will be rendered by StepExecutor
-                ctx.Set($"_defPath_{def.Name}", def.Path);
-                ctx.Set($"_ConfigRoot", configRoot);
+                return possibleRoot;
             }
         }
+
+        return null;
     }
 
     private static string? FindConfigFile(string? startDirectory)
@@ -137,19 +151,10 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
         [JsonPropertyName("default")]
         public bool Default { get; set; }
 
+        [JsonPropertyName("root")]
+        public string? Root { get; set; }
+
         [JsonPropertyName("params")]
         public Dictionary<string, object>? Params { get; set; }
-
-        [JsonPropertyName("defs")]
-        public List<LftDefinition>? Defs { get; set; }
-    }
-
-    private sealed class LftDefinition
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-
-        [JsonPropertyName("path")]
-        public string Path { get; set; } = string.Empty;
     }
 }

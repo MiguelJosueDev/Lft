@@ -5,7 +5,8 @@ public enum IntegrationStrategy
     Anchor,
     Append,
     Prepend,
-    Regex
+    Regex,
+    Replace  // For full file replacement (AST injections)
 }
 
 public enum InsertPosition

@@ -34,7 +34,8 @@ steps:
     action: ast-insert
     def: api-services
     output: Extensions/ServiceRegistrationExtensions.cs
-    targetMethod: "Add{{ _MainModuleName }}Services"
+    # Use discovered method via _InjectServiceRegistrationMethod
+    targetMethod: "{{ _InjectServiceRegistrationMethod }}"
     insertionType: "InMethod"
     idempotent: true
     parameters:

@@ -9,130 +9,178 @@ entryPoints:
       # 1. Models
       - name: CreateModel
         action: create
-        def: api-models
         source: resources/api/models/model.liquid
         output: "{{ _ModelName }}Model.cs"
 
       # 2. Repositories
       - name: CreateEntity
         action: create
-        def: api-repositories
         source: resources/api/repositories/entity.liquid
         output: "Entities/{{ _ModelName }}Entity.cs"
 
       - name: CreateRepository
         action: create
-        def: api-repositories
         source: resources/api/repositories/repository.liquid
         output: "{{ _ModuleName }}Repository.cs"
 
       # 3. Services
       - name: CreateServiceInterface
         action: create
-        def: api-interfaces
         source: resources/api/services/i_service.liquid
         output: "I{{ _ModuleName }}Service.cs"
 
       - name: CreateService
         action: create
-        def: api-services
         source: resources/api/services/service.liquid
         output: "{{ _ModuleName }}Service.cs"
 
       # 4. Host (Endpoints & Routes)
       - name: CreateEndpoint
         action: create
-        def: api-module
         source: resources/api/host/endpoints.liquid
         output: "Endpoints/{{ _ModuleName }}Endpoint.cs"
 
       - name: CreateRoutes
         action: create
-        def: api-module
         source: resources/api/host/routes.liquid
         output: "Routes/{{ _ModuleName }}Routes.cs"
+
+      # ========== INJECTIONS (C# AST using Discovery) ==========
+
+      # Inject into MappingProfile constructor
+      - name: InjectMapping
+        action: ast-insert
+        output: "{{ _InjectMappingProfilePath }}"
+        targetClass: "{{ _InjectMappingProfileClass }}"
+        targetMethod: "{{ _InjectMappingProfileMethod }}"
+        insertionType: "InConstructor"
+        idempotent: true
+        parameters:
+          queryType: "CodePattern"
+          queryPattern: "CreateMap<{{ _ModelName }}Model, {{ _ModelName }}Entity>"
+        template: "CreateMap<{{ _ModelName }}Model, {{ _ModelName }}Entity>().ReverseMap();"
+
+      # Inject Repository registration (uses discovered method name - supports suffixes like 'Sql')
+      - name: InjectRepository
+        action: ast-insert
+        output: "{{ _InjectRepositoryRegistrationPath }}"
+        targetClass: "{{ _InjectRepositoryRegistrationClass }}"
+        targetMethod: "{{ _InjectRepositoryRegistrationMethod }}"
+        insertionType: "InMethod"
+        idempotent: true
+        parameters:
+          queryType: "CodePattern"
+          queryPattern: "AddScoped<I{{ _ModuleName }}Repository"
+        template: "services.AddScoped<I{{ _ModuleName }}Repository, {{ _ModuleName }}Repository>();"
+
+      # Inject Service registration (uses discovered method name)
+      - name: InjectService
+        action: ast-insert
+        output: "{{ _InjectServiceRegistrationPath }}"
+        targetClass: "{{ _InjectServiceRegistrationClass }}"
+        targetMethod: "{{ _InjectServiceRegistrationMethod }}"
+        insertionType: "InMethod"
+        idempotent: true
+        parameters:
+          queryType: "CodePattern"
+          queryPattern: "AddScoped<I{{ _ModuleName }}Service"
+        template: "services.AddScoped<I{{ _ModuleName }}Service, {{ _ModuleName }}Service>();"
+
+      # Inject Endpoint registration (uses discovered file path - supports singular/plural Extensions)
+      - name: InjectEndpoint
+        action: ast-insert
+        output: "{{ _InjectEndpointRegistrationPath }}"
+        targetClass: "{{ _InjectEndpointRegistrationClass }}"
+        targetMethod: "{{ _InjectEndpointRegistrationMethod }}"
+        insertionType: "InMethod"
+        idempotent: true
+        parameters:
+          queryType: "CodePattern"
+          queryPattern: "AddScoped<I{{ _ModuleName }}Endpoint"
+        template: "services.AddScoped<I{{ _ModuleName }}Endpoint, {{ _ModuleName }}Endpoint>();"
+
+      # Inject Route mapping (uses discovered file path - supports singular/plural Extensions)
+      - name: InjectRoute
+        action: ast-insert
+        output: "{{ _InjectRouteRegistrationPath }}"
+        targetClass: "{{ _InjectRouteRegistrationClass }}"
+        targetMethod: "{{ _InjectRouteRegistrationMethod }}"
+        insertionType: "InMethod"
+        idempotent: true
+        parameters:
+          queryType: "CodePattern"
+          queryPattern: "Map{{ _ModuleName }}Routes"
+        template: "app.Map{{ _ModuleName }}Routes(basePrefix: basePrefix, prefix: \"{{ _routeModuleName }}\");"
+        position: beginning
 
       # ========== APP LAYER (Frontend) ==========
 
       # 5. Feature Views
       - name: CreateIndexViews
         action: create
-        def: app-src
         source: resources/app/feature/views/index_view.liquid
         output: "features/{{ _moduleNameCamel }}/views/index.js"
 
       - name: CreateListViews
         action: create
-        def: app-src
         source: resources/app/feature/views/list_view.liquid
         output: "features/{{ _moduleNameCamel }}/views/{{ _ModuleName }}ListView.jsx"
 
       - name: CreateAddViews
         action: create
-        def: app-src
         source: resources/app/feature/views/create_view.liquid
         output: "features/{{ _moduleNameCamel }}/views/{{ _ModelName }}CreateView.jsx"
 
       - name: CreateUpdateViews
         action: create
-        def: app-src
         source: resources/app/feature/views/update_view.liquid
         output: "features/{{ _moduleNameCamel }}/views/{{ _ModelName }}UpdateView.jsx"
 
       # 6. Feature Controllers
       - name: CreateIndexControllers
         action: create
-        def: app-src
         source: resources/app/feature/controllers/index_controller.liquid
         output: "features/{{ _moduleNameCamel }}/controllers/index.js"
 
       - name: CreateListControllers
         action: create
-        def: app-src
         source: resources/app/feature/controllers/list_controller.liquid
         output: "features/{{ _moduleNameCamel }}/controllers/{{ _ModuleName }}ListController.jsx"
 
       - name: CreateAddControllers
         action: create
-        def: app-src
         source: resources/app/feature/controllers/create_controller.liquid
         output: "features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}CreateController.jsx"
 
       - name: CreateUpdateControllers
         action: create
-        def: app-src
         source: resources/app/feature/controllers/update_controller.liquid
         output: "features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}UpdateController.jsx"
 
       # 7. Feature Components
       - name: CreateIndexComponents
         action: create
-        def: app-src
         source: resources/app/feature/components/index_components.liquid
         output: "features/{{ _moduleNameCamel }}/components/index.js"
 
       - name: CreateListComponents
         action: create
-        def: app-src
         source: resources/app/feature/components/list.liquid
         output: "features/{{ _moduleNameCamel }}/components/{{ _ModuleName }}List.jsx"
 
       - name: CreateFormComponents
         action: create
-        def: app-src
         source: resources/app/feature/components/form.liquid
         output: "features/{{ _moduleNameCamel }}/components/{{ _ModelName }}Form.jsx"
 
       # 8. Reactive Services
       - name: CreateReactiveService
         action: create
-        def: app-src
         source: resources/app/reactive/service.liquid
         output: "core/services/{{ _ModuleName }}Service.js"
 
       # 9. Routing
       - name: CreateRouterModule
         action: create
-        def: app-src
         source: resources/app/routing/router_module.liquid
         output: "features/routing/routers/{{ _ModuleName }}Router.jsx"
