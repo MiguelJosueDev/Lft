@@ -1,18 +1,22 @@
 using Lft.Discovery;
 using Lft.Engine.Variables;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.Engine.Discovery;
 
 /// <summary>
 /// Integrates project discovery with the generation engine.
 /// </summary>
-public sealed class DiscoveryService
+public sealed class DiscoveryService : IDiscoveryService
 {
     private readonly IProjectAnalyzer _analyzer;
+    private readonly ILogger<DiscoveryService> _logger;
 
-    public DiscoveryService(IProjectAnalyzer? analyzer = null)
+    public DiscoveryService(IProjectAnalyzer? analyzer = null, ILogger<DiscoveryService>? logger = null)
     {
         _analyzer = analyzer ?? new ProjectAnalyzer();
+        _logger = logger ?? NullLogger<DiscoveryService>.Instance;
     }
 
     /// <summary>
@@ -38,8 +42,8 @@ public sealed class DiscoveryService
         // Also set MainModuleName from discovered app name if not already set
         ctx.SetDefault("MainModuleName", manifest.AppName);
 
-        Console.WriteLine($"[LFT] Discovered app: {manifest.AppName} ({manifest.BaseNamespace})");
-        Console.WriteLine($"[LFT] Found {manifest.InjectionPoints.Count} injection points");
+        _logger.LogInformation("Discovered app {App} ({Namespace})", manifest.AppName, manifest.BaseNamespace);
+        _logger.LogInformation("Found {Count} injection points", manifest.InjectionPoints.Count);
 
         return manifest;
     }

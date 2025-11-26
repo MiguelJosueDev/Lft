@@ -1,9 +1,11 @@
-using Lft.Discovery;
 using Lft.Domain.Models;
+using Lft.Discovery;
 using Lft.Engine.Discovery;
 using Lft.Engine.Steps;
 using Lft.Engine.Templates;
 using Lft.Engine.Variables;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lft.Engine;
 
@@ -12,18 +14,21 @@ public sealed class TemplateCodeGenerationEngine : ICodeGenerationEngine
     private readonly TemplatePackLoader _packLoader;
     private readonly VariableResolver _variableResolver;
     private readonly StepExecutor _stepExecutor;
-    private readonly IProjectAnalyzer? _projectAnalyzer;
+    private readonly IDiscoveryService? _discoveryService;
+    private readonly ILogger<TemplateCodeGenerationEngine> _logger;
 
     public TemplateCodeGenerationEngine(
         TemplatePackLoader packLoader,
         VariableResolver variableResolver,
         StepExecutor stepExecutor,
-        IProjectAnalyzer? projectAnalyzer = null)
+        IDiscoveryService? discoveryService = null,
+        ILogger<TemplateCodeGenerationEngine>? logger = null)
     {
         _packLoader = packLoader;
         _variableResolver = variableResolver;
         _stepExecutor = stepExecutor;
-        _projectAnalyzer = projectAnalyzer;
+        _discoveryService = discoveryService;
+        _logger = logger ?? NullLogger<TemplateCodeGenerationEngine>.Instance;
     }
 
     public async Task<GenerationResult> GenerateAsync(
@@ -47,17 +52,16 @@ public sealed class TemplateCodeGenerationEngine : ICodeGenerationEngine
 
         // Run project discovery if profile root is available
         var profileRoot = vars.AsReadOnly().TryGetValue("_ProfileRoot", out var rootVal) ? rootVal as string : null;
-        if (!string.IsNullOrEmpty(profileRoot) && _projectAnalyzer != null)
+        if (!string.IsNullOrEmpty(profileRoot) && _discoveryService != null)
         {
             try
             {
-                var discoveryService = new DiscoveryService(_projectAnalyzer);
-                var manifest = await discoveryService.AnalyzeAndPopulateAsync(profileRoot, vars, cancellationToken);
+                var manifest = await _discoveryService.AnalyzeAndPopulateAsync(profileRoot, vars, cancellationToken);
                 _stepExecutor.SetManifest(manifest);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[LFT] Discovery warning: {ex.Message}");
+                _logger.LogWarning(ex, "Discovery failed while processing profile root '{ProfileRoot}'", profileRoot);
                 // Continue without discovery - fall back to legacy mode
             }
         }

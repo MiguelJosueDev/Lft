@@ -1,12 +1,22 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Lft.Engine;
 
 public sealed class DiskFileWriter : IFileWriter
 {
+    private readonly ILogger<DiskFileWriter> _logger;
+
+    public DiskFileWriter(ILogger<DiskFileWriter>? logger = null)
+    {
+        _logger = logger ?? NullLogger<DiskFileWriter>.Instance;
+    }
+
     public async Task WriteFileAsync(string path, string content, bool overwrite = false)
     {
         if (File.Exists(path) && !overwrite)
         {
-            Console.WriteLine($"[WARN] File already exists: {path}. Skipping.");
+            _logger.LogWarning("File already exists: {Path}. Skipping.", path);
             return;
         }
 
@@ -17,6 +27,6 @@ public sealed class DiskFileWriter : IFileWriter
         }
 
         await File.WriteAllTextAsync(path, content);
-        Console.WriteLine($"[INFO] Wrote: {path}");
+        _logger.LogInformation("Wrote file: {Path}", path);
     }
 }

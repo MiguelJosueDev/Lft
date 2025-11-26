@@ -19,6 +19,11 @@
     <ProjectReference Include="..\Lft.SqlSchema\Lft.SqlSchema.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+  </ItemGroup>
+
   <!-- Include templates folder in the tool package (pack only, not in build output) -->
   <ItemGroup>
     <None Include="..\..\templates\**\*" Exclude="..\..\templates\**\.DS_Store">
