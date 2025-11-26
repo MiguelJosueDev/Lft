@@ -1,5 +1,5 @@
 ﻿{
-  App/core/services/ProductsService.js:
+  core/services/ProductsService.js:
 import { ReactiveService } from '@livefree/reactive';
 import { GeneratedSDK } from 'sdk/GeneratedSDK';
 import { GeneratedConfig } from 'core/config';
@@ -50,11 +50,53 @@ export const ProductsReactor = ProductsService.reactor('productsReactor', {
   },
 });
 ,
-  App/features/products/components/index.js:
+  Endpoints/ProductsEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IProductsEndpoint : IModelEndpoint<ProductModel, long>
+{
+}
+
+public class ProductsEndpoint(
+    IProductsService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<ProductModel, IProductsService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IProductsEndpoint
+{
+
+}
+,
+  Entities/ProductEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Product - Review Entity Configuration
+[Table("Product", Schema = "dbo")]
+public class ProductEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  features/products/components/index.js:
 export * from './ProductsList';
 export * from './ProductForm';
 ,
-  App/features/products/components/ProductForm.jsx:
+  features/products/components/ProductForm.jsx:
 import { Uniformly } from '@livefree/uniformly';
 import { FieldStatus, TextField } from '@livefree/react-ui';
 
@@ -66,7 +108,7 @@ export const ProductForm = ({ product = {}, onChange }) => (
   </Uniformly>
 );
 ,
-  App/features/products/components/ProductsList.jsx:
+  features/products/components/ProductsList.jsx:
 import { useCallback } from 'react';
 import { TableRow, TableColumn, TableCell } from '@heroui/react';;
 import { RequestBrokerDataTable } from '@livefree/react-ui';
@@ -110,12 +152,12 @@ export const ProductsList = ({ products = [], filters, onSelect }) => {
   );
 };
 ,
-  App/features/products/controllers/index.js:
+  features/products/controllers/index.js:
 export * from './ProductsListController';
 export * from './ProductCreateController';
 export * from './ProductUpdateController';
 ,
-  App/features/products/controllers/ProductCreateController.jsx:
+  features/products/controllers/ProductCreateController.jsx:
 import { useState } from 'react';
 import { Button } from '@heroui/react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
@@ -161,7 +203,7 @@ ProductCreateController.Modal = withModalController(({ onSuccess, ...props }) =>
 
 export { ProductCreateController };
 ,
-  App/features/products/controllers/ProductsListController.jsx:
+  features/products/controllers/ProductsListController.jsx:
 import { useCallback } from 'react';
 import { Reactive } from '@livefree/reactive';
 import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
@@ -209,7 +251,7 @@ export const ProductsListController = Reactive(
   },
 );
 ,
-  App/features/products/controllers/ProductUpdateController.jsx:
+  features/products/controllers/ProductUpdateController.jsx:
 import { useState } from 'react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
 import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
@@ -278,12 +320,12 @@ ProductUpdateController.Modal = withModalController(({ onSuccess, ...props }) =>
 
 export { ProductUpdateController };
 ,
-  App/features/products/views/index.js:
+  features/products/views/index.js:
 export * from './ProductsListView';
 export * from './ProductCreateView';
 export * from './ProductUpdateView';
 ,
-  App/features/products/views/ProductCreateView.jsx:
+  features/products/views/ProductCreateView.jsx:
 import { ProductCreateController } from 'features/products/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -302,7 +344,7 @@ export const ProductCreateView = () => {
   );
 };
 ,
-  App/features/products/views/ProductsListView.jsx:
+  features/products/views/ProductsListView.jsx:
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
 import { useSyncCreateItem } from '@livefree/applications';
@@ -327,7 +369,7 @@ export const ProductsListView = () => {
   );
 };
 ,
-  App/features/products/views/ProductUpdateView.jsx:
+  features/products/views/ProductUpdateView.jsx:
 import { ProductUpdateController } from 'features/products/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -349,7 +391,7 @@ export const ProductUpdateView = ({ productId }) => {
   );
 };
 ,
-  App/features/routing/routers/ProductsRouter.jsx:
+  features/routing/routers/ProductsRouter.jsx:
 import { Route, Routes } from 'react-router-dom';
 import {
   ProductsListView,
@@ -366,49 +408,7 @@ export const ProductsRouter = () => (
   </Routes>
 );
 ,
-  Endpoints/ProductsEndpoint.cs:
-using LiveFree.Core.AspNetCore.Endpoints;
-using LiveFree.Core.Service.Authorization.Interfaces;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-
-namespace Lft.Generated.Api.Endpoints;
-
-public interface IProductsEndpoint : IModelEndpoint<ProductModel, long>
-{
-}
-
-public class ProductsEndpoint(
-    IProductsService service,
-    IAuthorizationService authorizationService,
-    IAuthorizationContextService authorizationContextService,
-    IHttpContextAccessor httpContextAccessor)
-    : ModelEndpoint<ProductModel, IProductsService, long>(service,
-        authorizationService, authorizationContextService, httpContextAccessor), IProductsEndpoint
-{
-
-}
-,
-  Entities/ProductEntity.cs:
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Data;
-using RepoDb.Attributes;
-
-namespace Lft.Generated.Repositories.SqlServer.Entities;
-
-// TODO: Product - Review Entity Configuration
-[Table("Product", Schema = "dbo")]
-public class ProductEntity
-{
-    [Key, Primary]
-    [Column("Id"), TypeMap(DbType.Int64)]
-    public long Id { get; set; }
-}
-,
-  Interfaces/IProductsService.cs:
+  IProductsService.cs:
 using LiveFree.Core.Service;
 using Lft.Generated.Models;
 
@@ -419,7 +419,7 @@ public interface IProductsService : IModelService<ProductModel, long>
 
 }
 ,
-  Models/ProductModel.cs:
+  ProductModel.cs:
 namespace Lft.Generated.Models;
 
 public class ProductModel
@@ -428,7 +428,7 @@ public class ProductModel
 
 }
 ,
-  Repositories/ProductsRepository.cs:
+  ProductsRepository.cs:
 using AutoMapper;
 using LiveFree.Core.Repository;
 using LiveFree.Core.Repository.RepoDB;
@@ -452,6 +452,22 @@ public class ProductsRepository(
     IUnitOfWork unitOfWork)
     : BaseRepository<ProductModel, ProductEntity, long>(connectionFactory, mapper, logger, unitOfWork),
         IProductsRepository
+{
+}
+,
+  ProductsService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class ProductsService(
+    IProductsRepository repository,
+    ILogger<ProductModel> logger)
+    : BaseModelService<IProductsRepository, ProductModel, long>(repository, logger), IProductsService
 {
 }
 ,
@@ -482,22 +498,6 @@ public static class ProductsRoutes
             .RequireAuthorization();
 
     }
-}
-,
-  Services/ProductsService.cs:
-using LiveFree.Core.Service;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Lft.Generated.Repositories.SqlServer;
-using Microsoft.Extensions.Logging;
-
-namespace Lft.Generated.Services;
-
-public class ProductsService(
-    IProductsRepository repository,
-    ILogger<ProductModel> logger)
-    : BaseModelService<IProductsRepository, ProductModel, long>(repository, logger), IProductsService
-{
 }
 
 }

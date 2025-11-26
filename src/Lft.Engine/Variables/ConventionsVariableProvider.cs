@@ -30,21 +30,25 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         ctx.Set("_ModuleName", plural);                              // FundingTypes (PascalCase) - for class names
         ctx.Set("_moduleNameCamel", plural.Camelize());              // fundingTypes (camelCase) - for JS services
 
-        // Base namespace
-        ctx.Set("BaseNamespaceName", "Lft.Generated");
+        // Base namespace (can be overridden by lft.config.json)
+        ctx.SetDefault("BaseNamespaceName", "Lft.Generated");
 
-        // Default configuration values
-        ctx.Set("keyType", "long");
-        ctx.Set("isMql", false);
-        ctx.Set("isRepositoryView", false);
+        // Default configuration values (can be overridden by lft.config.json)
+        ctx.SetDefault("keyType", "long");
+        ctx.SetDefault("isMql", false);
+        ctx.SetDefault("isRepositoryView", false);
 
-        // Main module (can be overridden if needed)
-        ctx.Set("MainModuleName", "Generated");
-        ctx.Set("_MainModuleName", "Generated");
+        // Main module (can be overridden by lft.config.json)
+        ctx.SetDefault("MainModuleName", "Generated");
+        ctx.SetDefault("_MainModuleName", "Generated");
 
-        // Connection factory and UnitOfWork names
-        ctx.Set("IConnectionFactoryName", "IConnectionFactory");
-        ctx.Set("IUnitOfWorkName", "IUnitOfWork");
+        // Connection factory and UnitOfWork names (can be overridden by lft.config.json)
+        ctx.SetDefault("IConnectionFactoryName", "IConnectionFactory");
+        ctx.SetDefault("IUnitOfWorkName", "IUnitOfWork");
+
+        // Route pattern config (can be overridden by lft.config.json)
+        ctx.SetDefault("RoutePattern", "MapModelRoutes");
+        ctx.SetDefault("RoutesExtensionSuffix", "Extensions");
 
         // Model definition using ExpandoObject for Liquid compatibility
         // This allows Liquid to access nested properties like {{ modelDefinition.entity.table }}

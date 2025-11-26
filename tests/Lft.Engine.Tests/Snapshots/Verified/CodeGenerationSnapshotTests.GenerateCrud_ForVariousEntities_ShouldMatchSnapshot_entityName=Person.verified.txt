@@ -1,5 +1,5 @@
 ﻿{
-  App/core/services/PeopleService.js:
+  core/services/PeopleService.js:
 import { ReactiveService } from '@livefree/reactive';
 import { GeneratedSDK } from 'sdk/GeneratedSDK';
 import { GeneratedConfig } from 'core/config';
@@ -50,11 +50,53 @@ export const PeopleReactor = PeopleService.reactor('peopleReactor', {
   },
 });
 ,
-  App/features/people/components/index.js:
+  Endpoints/PeopleEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IPeopleEndpoint : IModelEndpoint<PersonModel, long>
+{
+}
+
+public class PeopleEndpoint(
+    IPeopleService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<PersonModel, IPeopleService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IPeopleEndpoint
+{
+
+}
+,
+  Entities/PersonEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Person - Review Entity Configuration
+[Table("Person", Schema = "dbo")]
+public class PersonEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  features/people/components/index.js:
 export * from './PeopleList';
 export * from './PersonForm';
 ,
-  App/features/people/components/PeopleList.jsx:
+  features/people/components/PeopleList.jsx:
 import { useCallback } from 'react';
 import { TableRow, TableColumn, TableCell } from '@heroui/react';;
 import { RequestBrokerDataTable } from '@livefree/react-ui';
@@ -98,7 +140,7 @@ export const PeopleList = ({ people = [], filters, onSelect }) => {
   );
 };
 ,
-  App/features/people/components/PersonForm.jsx:
+  features/people/components/PersonForm.jsx:
 import { Uniformly } from '@livefree/uniformly';
 import { FieldStatus, TextField } from '@livefree/react-ui';
 
@@ -110,12 +152,12 @@ export const PersonForm = ({ person = {}, onChange }) => (
   </Uniformly>
 );
 ,
-  App/features/people/controllers/index.js:
+  features/people/controllers/index.js:
 export * from './PeopleListController';
 export * from './PersonCreateController';
 export * from './PersonUpdateController';
 ,
-  App/features/people/controllers/PeopleListController.jsx:
+  features/people/controllers/PeopleListController.jsx:
 import { useCallback } from 'react';
 import { Reactive } from '@livefree/reactive';
 import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
@@ -163,7 +205,7 @@ export const PeopleListController = Reactive(
   },
 );
 ,
-  App/features/people/controllers/PersonCreateController.jsx:
+  features/people/controllers/PersonCreateController.jsx:
 import { useState } from 'react';
 import { Button } from '@heroui/react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
@@ -209,7 +251,7 @@ PersonCreateController.Modal = withModalController(({ onSuccess, ...props }) => 
 
 export { PersonCreateController };
 ,
-  App/features/people/controllers/PersonUpdateController.jsx:
+  features/people/controllers/PersonUpdateController.jsx:
 import { useState } from 'react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
 import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
@@ -278,12 +320,12 @@ PersonUpdateController.Modal = withModalController(({ onSuccess, ...props }) => 
 
 export { PersonUpdateController };
 ,
-  App/features/people/views/index.js:
+  features/people/views/index.js:
 export * from './PeopleListView';
 export * from './PersonCreateView';
 export * from './PersonUpdateView';
 ,
-  App/features/people/views/PeopleListView.jsx:
+  features/people/views/PeopleListView.jsx:
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
 import { useSyncCreateItem } from '@livefree/applications';
@@ -308,7 +350,7 @@ export const PeopleListView = () => {
   );
 };
 ,
-  App/features/people/views/PersonCreateView.jsx:
+  features/people/views/PersonCreateView.jsx:
 import { PersonCreateController } from 'features/people/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -327,7 +369,7 @@ export const PersonCreateView = () => {
   );
 };
 ,
-  App/features/people/views/PersonUpdateView.jsx:
+  features/people/views/PersonUpdateView.jsx:
 import { PersonUpdateController } from 'features/people/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -349,7 +391,7 @@ export const PersonUpdateView = ({ personId }) => {
   );
 };
 ,
-  App/features/routing/routers/PeopleRouter.jsx:
+  features/routing/routers/PeopleRouter.jsx:
 import { Route, Routes } from 'react-router-dom';
 import {
   PeopleListView,
@@ -366,49 +408,7 @@ export const PeopleRouter = () => (
   </Routes>
 );
 ,
-  Endpoints/PeopleEndpoint.cs:
-using LiveFree.Core.AspNetCore.Endpoints;
-using LiveFree.Core.Service.Authorization.Interfaces;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-
-namespace Lft.Generated.Api.Endpoints;
-
-public interface IPeopleEndpoint : IModelEndpoint<PersonModel, long>
-{
-}
-
-public class PeopleEndpoint(
-    IPeopleService service,
-    IAuthorizationService authorizationService,
-    IAuthorizationContextService authorizationContextService,
-    IHttpContextAccessor httpContextAccessor)
-    : ModelEndpoint<PersonModel, IPeopleService, long>(service,
-        authorizationService, authorizationContextService, httpContextAccessor), IPeopleEndpoint
-{
-
-}
-,
-  Entities/PersonEntity.cs:
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Data;
-using RepoDb.Attributes;
-
-namespace Lft.Generated.Repositories.SqlServer.Entities;
-
-// TODO: Person - Review Entity Configuration
-[Table("Person", Schema = "dbo")]
-public class PersonEntity
-{
-    [Key, Primary]
-    [Column("Id"), TypeMap(DbType.Int64)]
-    public long Id { get; set; }
-}
-,
-  Interfaces/IPeopleService.cs:
+  IPeopleService.cs:
 using LiveFree.Core.Service;
 using Lft.Generated.Models;
 
@@ -419,16 +419,7 @@ public interface IPeopleService : IModelService<PersonModel, long>
 
 }
 ,
-  Models/PersonModel.cs:
-namespace Lft.Generated.Models;
-
-public class PersonModel
-{
-    public long Id { get; set; }
-
-}
-,
-  Repositories/PeopleRepository.cs:
+  PeopleRepository.cs:
 using AutoMapper;
 using LiveFree.Core.Repository;
 using LiveFree.Core.Repository.RepoDB;
@@ -453,6 +444,31 @@ public class PeopleRepository(
     : BaseRepository<PersonModel, PersonEntity, long>(connectionFactory, mapper, logger, unitOfWork),
         IPeopleRepository
 {
+}
+,
+  PeopleService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class PeopleService(
+    IPeopleRepository repository,
+    ILogger<PersonModel> logger)
+    : BaseModelService<IPeopleRepository, PersonModel, long>(repository, logger), IPeopleService
+{
+}
+,
+  PersonModel.cs:
+namespace Lft.Generated.Models;
+
+public class PersonModel
+{
+    public long Id { get; set; }
+
 }
 ,
   Routes/PeopleRoutes.cs:
@@ -482,22 +498,6 @@ public static class PeopleRoutes
             .RequireAuthorization();
 
     }
-}
-,
-  Services/PeopleService.cs:
-using LiveFree.Core.Service;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Lft.Generated.Repositories.SqlServer;
-using Microsoft.Extensions.Logging;
-
-namespace Lft.Generated.Services;
-
-public class PeopleService(
-    IPeopleRepository repository,
-    ILogger<PersonModel> logger)
-    : BaseModelService<IPeopleRepository, PersonModel, long>(repository, logger), IPeopleService
-{
 }
 
 }

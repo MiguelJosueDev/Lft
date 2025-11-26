@@ -15,6 +15,7 @@ public sealed class TemplatePackLoader
         _templatesRoot = templatesRoot;
         _deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
             .Build();
     }
 

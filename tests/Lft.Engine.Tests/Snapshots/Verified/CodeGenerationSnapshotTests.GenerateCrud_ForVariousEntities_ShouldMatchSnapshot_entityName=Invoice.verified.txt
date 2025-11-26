@@ -1,5 +1,5 @@
 ﻿{
-  App/core/services/InvoicesService.js:
+  core/services/InvoicesService.js:
 import { ReactiveService } from '@livefree/reactive';
 import { GeneratedSDK } from 'sdk/GeneratedSDK';
 import { GeneratedConfig } from 'core/config';
@@ -50,11 +50,53 @@ export const InvoicesReactor = InvoicesService.reactor('invoicesReactor', {
   },
 });
 ,
-  App/features/invoices/components/index.js:
+  Endpoints/InvoicesEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IInvoicesEndpoint : IModelEndpoint<InvoiceModel, long>
+{
+}
+
+public class InvoicesEndpoint(
+    IInvoicesService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<InvoiceModel, IInvoicesService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IInvoicesEndpoint
+{
+
+}
+,
+  Entities/InvoiceEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Invoice - Review Entity Configuration
+[Table("Invoice", Schema = "dbo")]
+public class InvoiceEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  features/invoices/components/index.js:
 export * from './InvoicesList';
 export * from './InvoiceForm';
 ,
-  App/features/invoices/components/InvoiceForm.jsx:
+  features/invoices/components/InvoiceForm.jsx:
 import { Uniformly } from '@livefree/uniformly';
 import { FieldStatus, TextField } from '@livefree/react-ui';
 
@@ -66,7 +108,7 @@ export const InvoiceForm = ({ invoice = {}, onChange }) => (
   </Uniformly>
 );
 ,
-  App/features/invoices/components/InvoicesList.jsx:
+  features/invoices/components/InvoicesList.jsx:
 import { useCallback } from 'react';
 import { TableRow, TableColumn, TableCell } from '@heroui/react';;
 import { RequestBrokerDataTable } from '@livefree/react-ui';
@@ -110,12 +152,12 @@ export const InvoicesList = ({ invoices = [], filters, onSelect }) => {
   );
 };
 ,
-  App/features/invoices/controllers/index.js:
+  features/invoices/controllers/index.js:
 export * from './InvoicesListController';
 export * from './InvoiceCreateController';
 export * from './InvoiceUpdateController';
 ,
-  App/features/invoices/controllers/InvoiceCreateController.jsx:
+  features/invoices/controllers/InvoiceCreateController.jsx:
 import { useState } from 'react';
 import { Button } from '@heroui/react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
@@ -161,7 +203,7 @@ InvoiceCreateController.Modal = withModalController(({ onSuccess, ...props }) =>
 
 export { InvoiceCreateController };
 ,
-  App/features/invoices/controllers/InvoicesListController.jsx:
+  features/invoices/controllers/InvoicesListController.jsx:
 import { useCallback } from 'react';
 import { Reactive } from '@livefree/reactive';
 import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
@@ -209,7 +251,7 @@ export const InvoicesListController = Reactive(
   },
 );
 ,
-  App/features/invoices/controllers/InvoiceUpdateController.jsx:
+  features/invoices/controllers/InvoiceUpdateController.jsx:
 import { useState } from 'react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
 import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
@@ -278,12 +320,12 @@ InvoiceUpdateController.Modal = withModalController(({ onSuccess, ...props }) =>
 
 export { InvoiceUpdateController };
 ,
-  App/features/invoices/views/index.js:
+  features/invoices/views/index.js:
 export * from './InvoicesListView';
 export * from './InvoiceCreateView';
 export * from './InvoiceUpdateView';
 ,
-  App/features/invoices/views/InvoiceCreateView.jsx:
+  features/invoices/views/InvoiceCreateView.jsx:
 import { InvoiceCreateController } from 'features/invoices/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -302,7 +344,7 @@ export const InvoiceCreateView = () => {
   );
 };
 ,
-  App/features/invoices/views/InvoicesListView.jsx:
+  features/invoices/views/InvoicesListView.jsx:
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
 import { useSyncCreateItem } from '@livefree/applications';
@@ -327,7 +369,7 @@ export const InvoicesListView = () => {
   );
 };
 ,
-  App/features/invoices/views/InvoiceUpdateView.jsx:
+  features/invoices/views/InvoiceUpdateView.jsx:
 import { InvoiceUpdateController } from 'features/invoices/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -349,7 +391,7 @@ export const InvoiceUpdateView = ({ invoiceId }) => {
   );
 };
 ,
-  App/features/routing/routers/InvoicesRouter.jsx:
+  features/routing/routers/InvoicesRouter.jsx:
 import { Route, Routes } from 'react-router-dom';
 import {
   InvoicesListView,
@@ -366,49 +408,7 @@ export const InvoicesRouter = () => (
   </Routes>
 );
 ,
-  Endpoints/InvoicesEndpoint.cs:
-using LiveFree.Core.AspNetCore.Endpoints;
-using LiveFree.Core.Service.Authorization.Interfaces;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-
-namespace Lft.Generated.Api.Endpoints;
-
-public interface IInvoicesEndpoint : IModelEndpoint<InvoiceModel, long>
-{
-}
-
-public class InvoicesEndpoint(
-    IInvoicesService service,
-    IAuthorizationService authorizationService,
-    IAuthorizationContextService authorizationContextService,
-    IHttpContextAccessor httpContextAccessor)
-    : ModelEndpoint<InvoiceModel, IInvoicesService, long>(service,
-        authorizationService, authorizationContextService, httpContextAccessor), IInvoicesEndpoint
-{
-
-}
-,
-  Entities/InvoiceEntity.cs:
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Data;
-using RepoDb.Attributes;
-
-namespace Lft.Generated.Repositories.SqlServer.Entities;
-
-// TODO: Invoice - Review Entity Configuration
-[Table("Invoice", Schema = "dbo")]
-public class InvoiceEntity
-{
-    [Key, Primary]
-    [Column("Id"), TypeMap(DbType.Int64)]
-    public long Id { get; set; }
-}
-,
-  Interfaces/IInvoicesService.cs:
+  IInvoicesService.cs:
 using LiveFree.Core.Service;
 using Lft.Generated.Models;
 
@@ -419,7 +419,7 @@ public interface IInvoicesService : IModelService<InvoiceModel, long>
 
 }
 ,
-  Models/InvoiceModel.cs:
+  InvoiceModel.cs:
 namespace Lft.Generated.Models;
 
 public class InvoiceModel
@@ -428,7 +428,7 @@ public class InvoiceModel
 
 }
 ,
-  Repositories/InvoicesRepository.cs:
+  InvoicesRepository.cs:
 using AutoMapper;
 using LiveFree.Core.Repository;
 using LiveFree.Core.Repository.RepoDB;
@@ -452,6 +452,22 @@ public class InvoicesRepository(
     IUnitOfWork unitOfWork)
     : BaseRepository<InvoiceModel, InvoiceEntity, long>(connectionFactory, mapper, logger, unitOfWork),
         IInvoicesRepository
+{
+}
+,
+  InvoicesService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class InvoicesService(
+    IInvoicesRepository repository,
+    ILogger<InvoiceModel> logger)
+    : BaseModelService<IInvoicesRepository, InvoiceModel, long>(repository, logger), IInvoicesService
 {
 }
 ,
@@ -482,22 +498,6 @@ public static class InvoicesRoutes
             .RequireAuthorization();
 
     }
-}
-,
-  Services/InvoicesService.cs:
-using LiveFree.Core.Service;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Lft.Generated.Repositories.SqlServer;
-using Microsoft.Extensions.Logging;
-
-namespace Lft.Generated.Services;
-
-public class InvoicesService(
-    IInvoicesRepository repository,
-    ILogger<InvoiceModel> logger)
-    : BaseModelService<IInvoicesRepository, InvoiceModel, long>(repository, logger), IInvoicesService
-{
 }
 
 }

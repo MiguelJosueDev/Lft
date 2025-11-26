@@ -73,15 +73,36 @@ public sealed class StepExecutor
         var rendered = _renderer.Render(templateContent, vars.AsReadOnly());
 
         // 3. Resolve output path
-        var relativeOutputPath = _renderer.Render(step.Output ?? "", vars.AsReadOnly());
+        var outputFileName = _renderer.Render(step.Output ?? "", vars.AsReadOnly());
 
-        // In a real scenario we might combine with OutputDirectory here or later.
-        // For now, we return the relative path as per GeneratedFile contract, 
-        // but the CLI might prepend OutputDir when writing.
-        // The prompt said "files.Add(new GeneratedFile(finalPath, rendered));"
-        // Let's keep it relative so the CLI can decide where to put it, or absolute if we want.
-        // The GenerationRequest has OutputDirectory.
-        // Let's make it relative to the OutputDirectory.
+        // Resolve definition path if specified
+        // The ProjectConfigVariableProvider sets "_defPath_{defName}" with the raw template path
+        var basePath = "";
+        if (!string.IsNullOrEmpty(step.Def))
+        {
+            var defKey = $"_defPath_{step.Def}";
+            var varDict = vars.AsReadOnly();
+            if (varDict.TryGetValue(defKey, out var defPathTemplate) && defPathTemplate is string pathTemplate)
+            {
+                // Render the path template (may contain {{BaseNamespaceName}} etc.)
+                var renderedPath = _renderer.Render(pathTemplate, varDict);
+
+                // Get config root if available
+                if (varDict.TryGetValue("_ConfigRoot", out var configRoot) && configRoot is string root)
+                {
+                    basePath = Path.GetFullPath(Path.Combine(root, renderedPath));
+                }
+                else
+                {
+                    basePath = renderedPath;
+                }
+            }
+        }
+
+        // Combine definition path with output filename
+        var relativeOutputPath = string.IsNullOrEmpty(basePath)
+            ? outputFileName
+            : Path.Combine(basePath, outputFileName);
 
         files.Add(new GeneratedFile(relativeOutputPath, rendered));
     }

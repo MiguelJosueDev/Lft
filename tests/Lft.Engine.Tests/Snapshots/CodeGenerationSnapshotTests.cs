@@ -131,10 +131,11 @@ public class CodeGenerationSnapshotTests
     {
         // Extract just the meaningful part of the path for snapshot keys
         // e.g., "/Users/.../Models/UserModel.cs" -> "Models/UserModel.cs"
+        // e.g., "features/phoneTypes/views/index.js" -> "features/phoneTypes/views/index.js"
         var parts = fullPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         // Find common folder markers and take path from there
-        var markers = new[] { "Models", "Entities", "Repositories", "Services", "Interfaces", "Endpoints", "Routes", "App" };
+        var markers = new[] { "Models", "Entities", "Repositories", "Services", "Interfaces", "Endpoints", "Routes", "App", "features", "core" };
 
         for (int i = 0; i < parts.Length; i++)
         {
@@ -144,7 +145,7 @@ public class CodeGenerationSnapshotTests
             }
         }
 
-        // Fallback: return filename only
-        return Path.GetFileName(fullPath);
+        // Fallback: return the full relative path (for short paths without markers)
+        return fullPath;
     }
 }

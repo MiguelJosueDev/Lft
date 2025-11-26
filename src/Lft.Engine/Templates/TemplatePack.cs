@@ -11,7 +11,7 @@ public sealed class TemplateStep
     public string Name { get; init; } = "";
     public string? CommandName { get; init; }   // for entrypoint "crud"
     public string Action { get; init; } = "";   // "group" | "create"
-    public string? Definition { get; init; }    // def: api-models
+    public string? Def { get; init; }           // def: api-models (definition name from lft.config.json)
     public string? Source { get; init; }        // resources/api/models/model.liquid
     public string? Output { get; init; }        // {{ _ModelName }}Model.cs
     public List<TemplateStep> Steps { get; init; } = new();

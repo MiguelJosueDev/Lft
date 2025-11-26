@@ -9,110 +9,130 @@ entryPoints:
       # 1. Models
       - name: CreateModel
         action: create
+        def: api-models
         source: resources/api/models/model.liquid
-        output: Models/{{ _ModelName }}Model.cs
+        output: "{{ _ModelName }}Model.cs"
 
       # 2. Repositories
       - name: CreateEntity
         action: create
+        def: api-repositories
         source: resources/api/repositories/entity.liquid
-        output: Entities/{{ _ModelName }}Entity.cs
+        output: "Entities/{{ _ModelName }}Entity.cs"
 
       - name: CreateRepository
         action: create
+        def: api-repositories
         source: resources/api/repositories/repository.liquid
-        output: Repositories/{{ _ModuleName }}Repository.cs
+        output: "{{ _ModuleName }}Repository.cs"
 
       # 3. Services
       - name: CreateServiceInterface
         action: create
+        def: api-interfaces
         source: resources/api/services/i_service.liquid
-        output: Interfaces/I{{ _ModuleName }}Service.cs
+        output: "I{{ _ModuleName }}Service.cs"
 
       - name: CreateService
         action: create
+        def: api-services
         source: resources/api/services/service.liquid
-        output: Services/{{ _ModuleName }}Service.cs
+        output: "{{ _ModuleName }}Service.cs"
 
       # 4. Host (Endpoints & Routes)
       - name: CreateEndpoint
         action: create
+        def: api-module
         source: resources/api/host/endpoints.liquid
-        output: Endpoints/{{ _ModuleName }}Endpoint.cs
+        output: "Endpoints/{{ _ModuleName }}Endpoint.cs"
 
       - name: CreateRoutes
         action: create
+        def: api-module
         source: resources/api/host/routes.liquid
-        output: Routes/{{ _ModuleName }}Routes.cs
+        output: "Routes/{{ _ModuleName }}Routes.cs"
 
       # ========== APP LAYER (Frontend) ==========
 
       # 5. Feature Views
       - name: CreateIndexViews
         action: create
+        def: app-src
         source: resources/app/feature/views/index_view.liquid
-        output: App/features/{{ _moduleNameCamel }}/views/index.js
+        output: "features/{{ _moduleNameCamel }}/views/index.js"
 
       - name: CreateListViews
         action: create
+        def: app-src
         source: resources/app/feature/views/list_view.liquid
-        output: App/features/{{ _moduleNameCamel }}/views/{{ _ModuleName }}ListView.jsx
+        output: "features/{{ _moduleNameCamel }}/views/{{ _ModuleName }}ListView.jsx"
 
       - name: CreateAddViews
         action: create
+        def: app-src
         source: resources/app/feature/views/create_view.liquid
-        output: App/features/{{ _moduleNameCamel }}/views/{{ _ModelName }}CreateView.jsx
+        output: "features/{{ _moduleNameCamel }}/views/{{ _ModelName }}CreateView.jsx"
 
       - name: CreateUpdateViews
         action: create
+        def: app-src
         source: resources/app/feature/views/update_view.liquid
-        output: App/features/{{ _moduleNameCamel }}/views/{{ _ModelName }}UpdateView.jsx
+        output: "features/{{ _moduleNameCamel }}/views/{{ _ModelName }}UpdateView.jsx"
 
       # 6. Feature Controllers
       - name: CreateIndexControllers
         action: create
+        def: app-src
         source: resources/app/feature/controllers/index_controller.liquid
-        output: App/features/{{ _moduleNameCamel }}/controllers/index.js
+        output: "features/{{ _moduleNameCamel }}/controllers/index.js"
 
       - name: CreateListControllers
         action: create
+        def: app-src
         source: resources/app/feature/controllers/list_controller.liquid
-        output: App/features/{{ _moduleNameCamel }}/controllers/{{ _ModuleName }}ListController.jsx
+        output: "features/{{ _moduleNameCamel }}/controllers/{{ _ModuleName }}ListController.jsx"
 
       - name: CreateAddControllers
         action: create
+        def: app-src
         source: resources/app/feature/controllers/create_controller.liquid
-        output: App/features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}CreateController.jsx
+        output: "features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}CreateController.jsx"
 
       - name: CreateUpdateControllers
         action: create
+        def: app-src
         source: resources/app/feature/controllers/update_controller.liquid
-        output: App/features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}UpdateController.jsx
+        output: "features/{{ _moduleNameCamel }}/controllers/{{ _ModelName }}UpdateController.jsx"
 
       # 7. Feature Components
       - name: CreateIndexComponents
         action: create
+        def: app-src
         source: resources/app/feature/components/index_components.liquid
-        output: App/features/{{ _moduleNameCamel }}/components/index.js
+        output: "features/{{ _moduleNameCamel }}/components/index.js"
 
       - name: CreateListComponents
         action: create
+        def: app-src
         source: resources/app/feature/components/list.liquid
-        output: App/features/{{ _moduleNameCamel }}/components/{{ _ModuleName }}List.jsx
+        output: "features/{{ _moduleNameCamel }}/components/{{ _ModuleName }}List.jsx"
 
       - name: CreateFormComponents
         action: create
+        def: app-src
         source: resources/app/feature/components/form.liquid
-        output: App/features/{{ _moduleNameCamel }}/components/{{ _ModelName }}Form.jsx
+        output: "features/{{ _moduleNameCamel }}/components/{{ _ModelName }}Form.jsx"
 
       # 8. Reactive Services
       - name: CreateReactiveService
         action: create
+        def: app-src
         source: resources/app/reactive/service.liquid
-        output: App/core/services/{{ _ModuleName }}Service.js
+        output: "core/services/{{ _ModuleName }}Service.js"
 
       # 9. Routing
       - name: CreateRouterModule
         action: create
+        def: app-src
         source: resources/app/routing/router_module.liquid
-        output: App/features/routing/routers/{{ _ModuleName }}Router.jsx
+        output: "features/routing/routers/{{ _ModuleName }}Router.jsx"

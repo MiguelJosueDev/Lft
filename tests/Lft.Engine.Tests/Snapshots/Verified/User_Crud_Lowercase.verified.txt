@@ -1,5 +1,5 @@
 ﻿{
-  App/core/services/UsersService.js:
+  core/services/UsersService.js:
 import { ReactiveService } from '@livefree/reactive';
 import { GeneratedSDK } from 'sdk/GeneratedSDK';
 import { GeneratedConfig } from 'core/config';
@@ -50,7 +50,49 @@ export const UsersReactor = UsersService.reactor('usersReactor', {
   },
 });
 ,
-  App/features/routing/routers/UsersRouter.jsx:
+  Endpoints/UsersEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface IUsersEndpoint : IModelEndpoint<UserModel, long>
+{
+}
+
+public class UsersEndpoint(
+    IUsersService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<UserModel, IUsersService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), IUsersEndpoint
+{
+
+}
+,
+  Entities/UserEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: User - Review Entity Configuration
+[Table("User", Schema = "dbo")]
+public class UserEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  features/routing/routers/UsersRouter.jsx:
 import { Route, Routes } from 'react-router-dom';
 import {
   UsersListView,
@@ -67,11 +109,11 @@ export const UsersRouter = () => (
   </Routes>
 );
 ,
-  App/features/users/components/index.js:
+  features/users/components/index.js:
 export * from './UsersList';
 export * from './UserForm';
 ,
-  App/features/users/components/UserForm.jsx:
+  features/users/components/UserForm.jsx:
 import { Uniformly } from '@livefree/uniformly';
 import { FieldStatus, TextField } from '@livefree/react-ui';
 
@@ -83,7 +125,7 @@ export const UserForm = ({ user = {}, onChange }) => (
   </Uniformly>
 );
 ,
-  App/features/users/components/UsersList.jsx:
+  features/users/components/UsersList.jsx:
 import { useCallback } from 'react';
 import { TableRow, TableColumn, TableCell } from '@heroui/react';;
 import { RequestBrokerDataTable } from '@livefree/react-ui';
@@ -127,12 +169,12 @@ export const UsersList = ({ users = [], filters, onSelect }) => {
   );
 };
 ,
-  App/features/users/controllers/index.js:
+  features/users/controllers/index.js:
 export * from './UsersListController';
 export * from './UserCreateController';
 export * from './UserUpdateController';
 ,
-  App/features/users/controllers/UserCreateController.jsx:
+  features/users/controllers/UserCreateController.jsx:
 import { useState } from 'react';
 import { Button } from '@heroui/react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
@@ -178,7 +220,7 @@ UserCreateController.Modal = withModalController(({ onSuccess, ...props }) => (
 
 export { UserCreateController };
 ,
-  App/features/users/controllers/UsersListController.jsx:
+  features/users/controllers/UsersListController.jsx:
 import { useCallback } from 'react';
 import { Reactive } from '@livefree/reactive';
 import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
@@ -226,7 +268,7 @@ export const UsersListController = Reactive(
   },
 );
 ,
-  App/features/users/controllers/UserUpdateController.jsx:
+  features/users/controllers/UserUpdateController.jsx:
 import { useState } from 'react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
 import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
@@ -295,12 +337,12 @@ UserUpdateController.Modal = withModalController(({ onSuccess, ...props }) => (
 
 export { UserUpdateController };
 ,
-  App/features/users/views/index.js:
+  features/users/views/index.js:
 export * from './UsersListView';
 export * from './UserCreateView';
 export * from './UserUpdateView';
 ,
-  App/features/users/views/UserCreateView.jsx:
+  features/users/views/UserCreateView.jsx:
 import { UserCreateController } from 'features/users/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -319,7 +361,7 @@ export const UserCreateView = () => {
   );
 };
 ,
-  App/features/users/views/UsersListView.jsx:
+  features/users/views/UsersListView.jsx:
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
 import { useSyncCreateItem } from '@livefree/applications';
@@ -344,7 +386,7 @@ export const UsersListView = () => {
   );
 };
 ,
-  App/features/users/views/UserUpdateView.jsx:
+  features/users/views/UserUpdateView.jsx:
 import { UserUpdateController } from 'features/users/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -366,49 +408,7 @@ export const UserUpdateView = ({ userId }) => {
   );
 };
 ,
-  Endpoints/UsersEndpoint.cs:
-using LiveFree.Core.AspNetCore.Endpoints;
-using LiveFree.Core.Service.Authorization.Interfaces;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-
-namespace Lft.Generated.Api.Endpoints;
-
-public interface IUsersEndpoint : IModelEndpoint<UserModel, long>
-{
-}
-
-public class UsersEndpoint(
-    IUsersService service,
-    IAuthorizationService authorizationService,
-    IAuthorizationContextService authorizationContextService,
-    IHttpContextAccessor httpContextAccessor)
-    : ModelEndpoint<UserModel, IUsersService, long>(service,
-        authorizationService, authorizationContextService, httpContextAccessor), IUsersEndpoint
-{
-
-}
-,
-  Entities/UserEntity.cs:
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Data;
-using RepoDb.Attributes;
-
-namespace Lft.Generated.Repositories.SqlServer.Entities;
-
-// TODO: User - Review Entity Configuration
-[Table("User", Schema = "dbo")]
-public class UserEntity
-{
-    [Key, Primary]
-    [Column("Id"), TypeMap(DbType.Int64)]
-    public long Id { get; set; }
-}
-,
-  Interfaces/IUsersService.cs:
+  IUsersService.cs:
 using LiveFree.Core.Service;
 using Lft.Generated.Models;
 
@@ -417,42 +417,6 @@ namespace Lft.Generated.Interfaces;
 public interface IUsersService : IModelService<UserModel, long>
 {
 
-}
-,
-  Models/UserModel.cs:
-namespace Lft.Generated.Models;
-
-public class UserModel
-{
-    public long Id { get; set; }
-
-}
-,
-  Repositories/UsersRepository.cs:
-using AutoMapper;
-using LiveFree.Core.Repository;
-using LiveFree.Core.Repository.RepoDB;
-using LiveFree.Mql.Models;
-using Lft.Generated.Models;
-using Lft.Generated.Repositories.SqlServer.Entities;
-using Microsoft.Extensions.Logging;
-using RepoDb;
-
-namespace Lft.Generated.Repositories.SqlServer;
-
-public interface IUsersRepository : IRepository<UserModel, long>
-{
-
-}
-
-public class UsersRepository(
-    IConnectionFactory connectionFactory,
-    IMapper mapper,
-    ILogger<UserEntity> logger,
-    IUnitOfWork unitOfWork)
-    : BaseRepository<UserModel, UserEntity, long>(connectionFactory, mapper, logger, unitOfWork),
-        IUsersRepository
-{
 }
 ,
   Routes/UsersRoutes.cs:
@@ -484,7 +448,43 @@ public static class UsersRoutes
     }
 }
 ,
-  Services/UsersService.cs:
+  UserModel.cs:
+namespace Lft.Generated.Models;
+
+public class UserModel
+{
+    public long Id { get; set; }
+
+}
+,
+  UsersRepository.cs:
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace Lft.Generated.Repositories.SqlServer;
+
+public interface IUsersRepository : IRepository<UserModel, long>
+{
+
+}
+
+public class UsersRepository(
+    IConnectionFactory connectionFactory,
+    IMapper mapper,
+    ILogger<UserEntity> logger,
+    IUnitOfWork unitOfWork)
+    : BaseRepository<UserModel, UserEntity, long>(connectionFactory, mapper, logger, unitOfWork),
+        IUsersRepository
+{
+}
+,
+  UsersService.cs:
 using LiveFree.Core.Service;
 using Lft.Generated.Interfaces;
 using Lft.Generated.Models;

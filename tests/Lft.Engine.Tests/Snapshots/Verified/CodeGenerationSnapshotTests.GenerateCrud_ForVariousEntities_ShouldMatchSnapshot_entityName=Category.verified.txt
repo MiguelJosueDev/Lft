@@ -1,5 +1,57 @@
 ﻿{
-  App/core/services/CategoriesService.js:
+  CategoriesRepository.cs:
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace Lft.Generated.Repositories.SqlServer;
+
+public interface ICategoriesRepository : IRepository<CategoryModel, long>
+{
+
+}
+
+public class CategoriesRepository(
+    IConnectionFactory connectionFactory,
+    IMapper mapper,
+    ILogger<CategoryEntity> logger,
+    IUnitOfWork unitOfWork)
+    : BaseRepository<CategoryModel, CategoryEntity, long>(connectionFactory, mapper, logger, unitOfWork),
+        ICategoriesRepository
+{
+}
+,
+  CategoriesService.cs:
+using LiveFree.Core.Service;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Lft.Generated.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace Lft.Generated.Services;
+
+public class CategoriesService(
+    ICategoriesRepository repository,
+    ILogger<CategoryModel> logger)
+    : BaseModelService<ICategoriesRepository, CategoryModel, long>(repository, logger), ICategoriesService
+{
+}
+,
+  CategoryModel.cs:
+namespace Lft.Generated.Models;
+
+public class CategoryModel
+{
+    public long Id { get; set; }
+
+}
+,
+  core/services/CategoriesService.js:
 import { ReactiveService } from '@livefree/reactive';
 import { GeneratedSDK } from 'sdk/GeneratedSDK';
 import { GeneratedConfig } from 'core/config';
@@ -50,7 +102,49 @@ export const CategoriesReactor = CategoriesService.reactor('categoriesReactor', 
   },
 });
 ,
-  App/features/categories/components/CategoriesList.jsx:
+  Endpoints/CategoriesEndpoint.cs:
+using LiveFree.Core.AspNetCore.Endpoints;
+using LiveFree.Core.Service.Authorization.Interfaces;
+using Lft.Generated.Interfaces;
+using Lft.Generated.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+
+namespace Lft.Generated.Api.Endpoints;
+
+public interface ICategoriesEndpoint : IModelEndpoint<CategoryModel, long>
+{
+}
+
+public class CategoriesEndpoint(
+    ICategoriesService service,
+    IAuthorizationService authorizationService,
+    IAuthorizationContextService authorizationContextService,
+    IHttpContextAccessor httpContextAccessor)
+    : ModelEndpoint<CategoryModel, ICategoriesService, long>(service,
+        authorizationService, authorizationContextService, httpContextAccessor), ICategoriesEndpoint
+{
+
+}
+,
+  Entities/CategoryEntity.cs:
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace Lft.Generated.Repositories.SqlServer.Entities;
+
+// TODO: Category - Review Entity Configuration
+[Table("Category", Schema = "dbo")]
+public class CategoryEntity
+{
+    [Key, Primary]
+    [Column("Id"), TypeMap(DbType.Int64)]
+    public long Id { get; set; }
+}
+,
+  features/categories/components/CategoriesList.jsx:
 import { useCallback } from 'react';
 import { TableRow, TableColumn, TableCell } from '@heroui/react';;
 import { RequestBrokerDataTable } from '@livefree/react-ui';
@@ -94,7 +188,7 @@ export const CategoriesList = ({ categories = [], filters, onSelect }) => {
   );
 };
 ,
-  App/features/categories/components/CategoryForm.jsx:
+  features/categories/components/CategoryForm.jsx:
 import { Uniformly } from '@livefree/uniformly';
 import { FieldStatus, TextField } from '@livefree/react-ui';
 
@@ -106,11 +200,11 @@ export const CategoryForm = ({ category = {}, onChange }) => (
   </Uniformly>
 );
 ,
-  App/features/categories/components/index.js:
+  features/categories/components/index.js:
 export * from './CategoriesList';
 export * from './CategoryForm';
 ,
-  App/features/categories/controllers/CategoriesListController.jsx:
+  features/categories/controllers/CategoriesListController.jsx:
 import { useCallback } from 'react';
 import { Reactive } from '@livefree/reactive';
 import { RequestBroker, queryDexieWithMetadata } from '@livefree/applications';
@@ -158,7 +252,7 @@ export const CategoriesListController = Reactive(
   },
 );
 ,
-  App/features/categories/controllers/CategoryCreateController.jsx:
+  features/categories/controllers/CategoryCreateController.jsx:
 import { useState } from 'react';
 import { Button } from '@heroui/react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
@@ -204,7 +298,7 @@ CategoryCreateController.Modal = withModalController(({ onSuccess, ...props }) =
 
 export { CategoryCreateController };
 ,
-  App/features/categories/controllers/CategoryUpdateController.jsx:
+  features/categories/controllers/CategoryUpdateController.jsx:
 import { useState } from 'react';
 import { Reactive, useReactorOnSuccess } from '@livefree/reactive';
 import { DeleteButton, SaveButton, withModalController } from '@livefree/react-ui';
@@ -273,12 +367,12 @@ CategoryUpdateController.Modal = withModalController(({ onSuccess, ...props }) =
 
 export { CategoryUpdateController };
 ,
-  App/features/categories/controllers/index.js:
+  features/categories/controllers/index.js:
 export * from './CategoriesListController';
 export * from './CategoryCreateController';
 export * from './CategoryUpdateController';
 ,
-  App/features/categories/views/CategoriesListView.jsx:
+  features/categories/views/CategoriesListView.jsx:
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, BreadcrumbItem } from '@heroui/react';
 import { useSyncCreateItem } from '@livefree/applications';
@@ -303,7 +397,7 @@ export const CategoriesListView = () => {
   );
 };
 ,
-  App/features/categories/views/CategoryCreateView.jsx:
+  features/categories/views/CategoryCreateView.jsx:
 import { CategoryCreateController } from 'features/categories/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -322,7 +416,7 @@ export const CategoryCreateView = () => {
   );
 };
 ,
-  App/features/categories/views/CategoryUpdateView.jsx:
+  features/categories/views/CategoryUpdateView.jsx:
 import { CategoryUpdateController } from 'features/categories/controllers';
 import { useNavigate } from 'react-router-dom';
 import { RoutePaths } from 'features/routing';
@@ -344,12 +438,12 @@ export const CategoryUpdateView = ({ categoryId }) => {
   );
 };
 ,
-  App/features/categories/views/index.js:
+  features/categories/views/index.js:
 export * from './CategoriesListView';
 export * from './CategoryCreateView';
 export * from './CategoryUpdateView';
 ,
-  App/features/routing/routers/CategoriesRouter.jsx:
+  features/routing/routers/CategoriesRouter.jsx:
 import { Route, Routes } from 'react-router-dom';
 import {
   CategoriesListView,
@@ -366,49 +460,7 @@ export const CategoriesRouter = () => (
   </Routes>
 );
 ,
-  Endpoints/CategoriesEndpoint.cs:
-using LiveFree.Core.AspNetCore.Endpoints;
-using LiveFree.Core.Service.Authorization.Interfaces;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-
-namespace Lft.Generated.Api.Endpoints;
-
-public interface ICategoriesEndpoint : IModelEndpoint<CategoryModel, long>
-{
-}
-
-public class CategoriesEndpoint(
-    ICategoriesService service,
-    IAuthorizationService authorizationService,
-    IAuthorizationContextService authorizationContextService,
-    IHttpContextAccessor httpContextAccessor)
-    : ModelEndpoint<CategoryModel, ICategoriesService, long>(service,
-        authorizationService, authorizationContextService, httpContextAccessor), ICategoriesEndpoint
-{
-
-}
-,
-  Entities/CategoryEntity.cs:
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Data;
-using RepoDb.Attributes;
-
-namespace Lft.Generated.Repositories.SqlServer.Entities;
-
-// TODO: Category - Review Entity Configuration
-[Table("Category", Schema = "dbo")]
-public class CategoryEntity
-{
-    [Key, Primary]
-    [Column("Id"), TypeMap(DbType.Int64)]
-    public long Id { get; set; }
-}
-,
-  Interfaces/ICategoriesService.cs:
+  ICategoriesService.cs:
 using LiveFree.Core.Service;
 using Lft.Generated.Models;
 
@@ -417,42 +469,6 @@ namespace Lft.Generated.Interfaces;
 public interface ICategoriesService : IModelService<CategoryModel, long>
 {
 
-}
-,
-  Models/CategoryModel.cs:
-namespace Lft.Generated.Models;
-
-public class CategoryModel
-{
-    public long Id { get; set; }
-
-}
-,
-  Repositories/CategoriesRepository.cs:
-using AutoMapper;
-using LiveFree.Core.Repository;
-using LiveFree.Core.Repository.RepoDB;
-using LiveFree.Mql.Models;
-using Lft.Generated.Models;
-using Lft.Generated.Repositories.SqlServer.Entities;
-using Microsoft.Extensions.Logging;
-using RepoDb;
-
-namespace Lft.Generated.Repositories.SqlServer;
-
-public interface ICategoriesRepository : IRepository<CategoryModel, long>
-{
-
-}
-
-public class CategoriesRepository(
-    IConnectionFactory connectionFactory,
-    IMapper mapper,
-    ILogger<CategoryEntity> logger,
-    IUnitOfWork unitOfWork)
-    : BaseRepository<CategoryModel, CategoryEntity, long>(connectionFactory, mapper, logger, unitOfWork),
-        ICategoriesRepository
-{
 }
 ,
   Routes/CategoriesRoutes.cs:
@@ -482,22 +498,6 @@ public static class CategoriesRoutes
             .RequireAuthorization();
 
     }
-}
-,
-  Services/CategoriesService.cs:
-using LiveFree.Core.Service;
-using Lft.Generated.Interfaces;
-using Lft.Generated.Models;
-using Lft.Generated.Repositories.SqlServer;
-using Microsoft.Extensions.Logging;
-
-namespace Lft.Generated.Services;
-
-public class CategoriesService(
-    ICategoriesRepository repository,
-    ILogger<CategoryModel> logger)
-    : BaseModelService<ICategoriesRepository, CategoryModel, long>(repository, logger), ICategoriesService
-{
 }
 
 }

@@ -49,6 +49,7 @@ static async Task HandleGenCommand(string[] args)
     // Parse flags
     var language = "csharp";
     var dryRun = false;
+    string? profile = null;
 
     for (var i = 3; i < args.Length; i++)
     {
@@ -61,6 +62,11 @@ static async Task HandleGenCommand(string[] args)
         {
             dryRun = true;
         }
+        else if (string.Equals(args[i], "--profile", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+        {
+            profile = args[i + 1];
+            i++;
+        }
     }
 
     var request = new GenerationRequest(
@@ -72,10 +78,23 @@ static async Task HandleGenCommand(string[] args)
     );
 
     // Setup dependencies (Manual DI for now)
+    // Look for templates in multiple locations:
+    // 1. Next to the executable (for installed/published tool)
+    // 2. In the LFT project root (for development when running from other directories)
     var templatesRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates");
-    // Fallback to local templates folder if not found in bin (for dev)
+
     if (!Directory.Exists(templatesRoot))
     {
+        // Development fallback: find templates relative to the Lft.Cli project
+        // This allows running `dotnet run --project /path/to/Lft.Cli` from any directory
+        var assemblyLocation = typeof(Program).Assembly.Location;
+        var projectRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(assemblyLocation)!, "..", "..", "..", "..", ".."));
+        templatesRoot = Path.Combine(projectRoot, "templates");
+    }
+
+    if (!Directory.Exists(templatesRoot))
+    {
+        // Last fallback: current directory (original behavior)
         templatesRoot = Path.Combine(Directory.GetCurrentDirectory(), "templates");
     }
 
@@ -83,7 +102,8 @@ static async Task HandleGenCommand(string[] args)
     var variableResolver = new VariableResolver(new IVariableProvider[]
     {
         new CliVariableProvider(),
-        new ConventionsVariableProvider(),
+        new ProjectConfigVariableProvider(profile),  // Load from lft.config.json first
+        new ConventionsVariableProvider(),           // Then apply conventions (can use config values)
     });
     var renderer = new LiquidTemplateRenderer();
     var stepExecutor = new StepExecutor(templatesRoot, renderer);
@@ -116,8 +136,14 @@ static async Task HandleGenCommand(string[] args)
 static void PrintUsage()
 {
     Console.WriteLine("Usage:");
-    Console.WriteLine("  lft gen crud <EntityName> [--lang <language>]");
+    Console.WriteLine("  lft gen crud <EntityName> [--lang <language>] [--profile <profile>] [--dry-run]");
+    Console.WriteLine();
+    Console.WriteLine("Options:");
+    Console.WriteLine("  --lang <language>    Target language (default: csharp)");
+    Console.WriteLine("  --profile <profile>  Config profile from lft.config.json (e.g., accounts, transactions-app)");
+    Console.WriteLine("  --dry-run            Preview changes without writing files");
     Console.WriteLine();
     Console.WriteLine("Examples:");
     Console.WriteLine("  lft gen crud User --lang csharp");
+    Console.WriteLine("  lft gen crud PhoneType --profile transactions-app");
 }
