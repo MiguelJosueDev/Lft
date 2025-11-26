@@ -318,4 +318,34 @@ public class ConventionsVariableProviderTests
         variables["_EntityPascal"].Should().Be(expectedPascal, $"_EntityPascal for input '{input}'");
         variables["_ModuleName"].Should().Be(expectedPlural, $"_ModuleName for input '{input}'");
     }
+
+    [Fact]
+    public void Populate_WithCrudSchemaDefinition_ShouldUseMappedFields()
+    {
+        // Arrange
+        var fields = new List<CrudFieldDefinition>
+        {
+            new("Id", "int", true, true, true, DbName: "Id", DbType: "DbType.Int32"),
+            new("UserName", "string", true, false, false, DbName: "UserName", DbType: "DbType.String"),
+            new("IsActive", "bool?", false, false, false, DbName: "IsActive", DbType: "DbType.Boolean")
+        };
+
+        var schema = new CrudSchemaDefinition("Users", fields, false, "dbo");
+        var request = new GenerationRequest("User", "csharp", crudSchemaDefinition: schema);
+        var context = new VariableContext();
+
+        // Act
+        _provider.Populate(context, request);
+
+        // Assert
+        var variables = context.AsReadOnly();
+        variables["keyType"].Should().Be("int");
+        variables["isReadOnly"].Should().BeFalse();
+
+        dynamic modelDefinition = variables["modelDefinition"]!;
+        ((string)modelDefinition.entity.table).Should().Be("Users");
+        var properties = (IEnumerable<object>)modelDefinition.properties;
+        properties.Should().Contain(p => ((dynamic)p).name == "UserName");
+        properties.Should().Contain(p => ((dynamic)p).name == "IsActive");
+    }
 }

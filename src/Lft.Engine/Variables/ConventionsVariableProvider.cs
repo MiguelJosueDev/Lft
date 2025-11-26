@@ -35,6 +35,7 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         ctx.Set("keyType", "long");
         ctx.Set("isMql", false);
         ctx.Set("isRepositoryView", false);
+        ctx.Set("isReadOnly", request.CrudSchemaDefinition?.IsReadOnly ?? false);
 
         // Main module (can be overridden if needed)
         ctx.Set("MainModuleName", "Generated");
@@ -50,17 +51,73 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         modelDefinition.properties = new List<object>();
 
         dynamic entityDef = new ExpandoObject();
-        entityDef.table = entity;
-        entityDef.schema = "dbo";
+        entityDef.table = request.CrudSchemaDefinition?.Name ?? entity;
+        entityDef.schema = request.CrudSchemaDefinition?.SchemaName ?? "dbo";
 
-        dynamic primaryDef = new ExpandoObject();
-        primaryDef.dbName = "Id";
-        primaryDef.dbType = "DbType.Int64";
+        if (request.CrudSchemaDefinition is { } crudSchema)
+        {
+            var primaryField = crudSchema.Fields.FirstOrDefault(f => f.IsPrimaryKey);
+            if (primaryField is not null)
+            {
+                dynamic primaryDef = new ExpandoObject();
+                primaryDef.dbName = primaryField.DbName ?? primaryField.Name;
+                primaryDef.dbType = primaryField.DbType ?? MapClrToDbType(primaryField.ClrType);
+                entityDef.primary = primaryDef;
 
-        entityDef.primary = primaryDef;
+                ctx.Set("keyType", primaryField.ClrType);
+            }
+
+            foreach (var field in crudSchema.Fields)
+            {
+                if (field.IsPrimaryKey)
+                {
+                    continue;
+                }
+
+                dynamic propertyDef = new ExpandoObject();
+                propertyDef.name = field.Name;
+                propertyDef.type = field.ClrType;
+                propertyDef.dbName = field.DbName ?? field.Name;
+                propertyDef.dbType = field.DbType ?? MapClrToDbType(field.ClrType);
+                propertyDef.isRequired = field.IsRequired;
+                propertyDef.isIdentity = field.IsIdentity;
+                propertyDef.maxLength = field.MaxLength;
+                propertyDef.defaultValue = field.DefaultValue;
+                modelDefinition.properties.Add(propertyDef);
+            }
+        }
+        else
+        {
+            dynamic primaryDef = new ExpandoObject();
+            primaryDef.dbName = "Id";
+            primaryDef.dbType = "DbType.Int64";
+            entityDef.primary = primaryDef;
+        }
+
         modelDefinition.entity = entityDef;
 
         ctx.Set("modelDefinition", modelDefinition);
+    }
+
+    private static string MapClrToDbType(string clrType)
+    {
+        var normalized = clrType.TrimEnd('?');
+        return normalized switch
+        {
+            "long" => "DbType.Int64",
+            "int" => "DbType.Int32",
+            "short" => "DbType.Int16",
+            "byte" => "DbType.Byte",
+            "bool" => "DbType.Boolean",
+            "Guid" => "DbType.Guid",
+            "DateTime" => "DbType.DateTime2",
+            "TimeSpan" => "DbType.Time",
+            "decimal" => "DbType.Decimal",
+            "double" => "DbType.Double",
+            "float" => "DbType.Single",
+            "byte[]" => "DbType.Binary",
+            _ => "DbType.String"
+        };
     }
 
     private static bool IsAllUpperCase(string value)
