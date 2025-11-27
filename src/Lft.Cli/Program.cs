@@ -4,19 +4,17 @@ using Lft.App.Pipelines.Steps.Strategies;
 using Lft.App.Services;
 using Lft.Ast.CSharp;
 using Lft.Discovery;
-using Lft.Cli;
+using Lft.Engine.Discovery;
 using Lft.Domain.Models;
 using Lft.Domain.Services;
 using Lft.Engine;
 using Lft.Engine.Templates;
 using Lft.Engine.Variables;
 using Lft.Engine.Steps;
-using Lft.App.Pipelines;
 using Lft.Integration;
-using Lft.Ast.CSharp;
-using Lft.App.Pipelines.Steps;
-using Lft.App.Pipelines.Steps.Strategies;
-using Lft.App.Services;
+using Lft.SqlSchema;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 if (!TryParseGenerationCommand(args, out var request, out var dryRun, out var profile))
 {
@@ -45,6 +43,29 @@ catch (Exception ex)
     logger.LogError(ex, "Pipeline failed");
 }
 
+static string ResolveTemplatesRoot()
+{
+    // Look for templates in multiple locations:
+    // 1. Next to the executable (for installed/published tool)
+    var templatesRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates");
+
+    if (!Directory.Exists(templatesRoot))
+    {
+        // 2. In the LFT project root (for development when running from other directories)
+        var assemblyLocation = typeof(Program).Assembly.Location;
+        var projectRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(assemblyLocation)!, "..", "..", "..", "..", ".."));
+        templatesRoot = Path.Combine(projectRoot, "templates");
+    }
+
+    if (!Directory.Exists(templatesRoot))
+    {
+        // 3. Current working directory
+        templatesRoot = Path.Combine(Directory.GetCurrentDirectory(), "templates");
+    }
+
+    return templatesRoot;
+}
+
 static ServiceProvider ConfigureServices(string templatesRoot, string? profile)
 {
     var services = new ServiceCollection();
@@ -57,8 +78,9 @@ static ServiceProvider ConfigureServices(string templatesRoot, string? profile)
 
     services.AddSingleton(new TemplatePackLoader(templatesRoot));
     services.AddSingleton<ITemplateRenderer, LiquidTemplateRenderer>();
-    services.AddSingleton<ISmartPathResolver, SuffixBasedPathResolver>();
-    services.AddSingleton<IPathResolver>(sp => sp.GetRequiredService<ISmartPathResolver>());
+    services.AddSingleton<SuffixBasedPathResolver>();
+    services.AddSingleton<ISmartPathResolver>(sp => sp.GetRequiredService<SuffixBasedPathResolver>());
+    services.AddSingleton<IPathResolver>(sp => sp.GetRequiredService<SuffixBasedPathResolver>());
     services.AddSingleton<ICodeInjector, CSharpCodeInjector>();
     services.AddSingleton<VariableResolver>();
     services.AddSingleton<IVariableProvider, CliVariableProvider>();
@@ -116,7 +138,7 @@ static bool TryParseGenerationCommand(
         return false;
     }
 
-    if (args.Count < 3)
+    if (args.Count < 2)
     {
         return false;
     }
@@ -127,16 +149,14 @@ static bool TryParseGenerationCommand(
         return false;
     }
 
-    var entityName = args[2];
-
-    // Parse flags
+    // Parse flags and --set variables
     var language = "csharp";
-    var dryRun = false;
-    string? profile = null;
+    string? entityName = null;
+    var variables = new Dictionary<string, string>();
 
-    for (var i = 3; i < args.Length; i++)
+    for (var i = 2; i < args.Count; i++)
     {
-        if (string.Equals(args[i], "--lang", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+        if (string.Equals(args[i], "--lang", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Count)
         {
             language = args[i + 1];
             i++;
@@ -145,177 +165,76 @@ static bool TryParseGenerationCommand(
         {
             dryRun = true;
         }
-        else if (string.Equals(args[i], "--profile", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+        else if (string.Equals(args[i], "--profile", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Count)
         {
             profile = args[i + 1];
             i++;
         }
+        else if (string.Equals(args[i], "--set", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Count)
+        {
+            // Parse key=value
+            var keyValue = args[i + 1];
+            var eqIndex = keyValue.IndexOf('=');
+            if (eqIndex > 0)
+            {
+                var key = keyValue[..eqIndex];
+                var value = keyValue[(eqIndex + 1)..];
+                variables[key] = value;
+
+                // Extract entity name from modelName variable
+                if (string.Equals(key, "modelName", StringComparison.OrdinalIgnoreCase))
+                {
+                    entityName = value;
+                }
+            }
+            i++;
+        }
+        else if (!args[i].StartsWith("--"))
+        {
+            // Positional argument - entity name
+            entityName ??= args[i];
+        }
     }
 
-    var request = new GenerationRequest(
+    if (string.IsNullOrEmpty(entityName))
+    {
+        Console.WriteLine("[ERROR] Entity name is required. Use: lft gen crud <EntityName> or --set modelName=<EntityName>");
+        return false;
+    }
+
+    request = new GenerationRequest(
         entityName: entityName,
         language: language,
         outputDirectory: Directory.GetCurrentDirectory(),
         commandName: "crud",
         templatePack: "main",
-        profile: profile
+        profile: profile,
+        variables: variables
     );
 
-    // Setup dependencies (Manual DI for now)
-    // Look for templates in multiple locations:
-    // 1. Next to the executable (for installed/published tool)
-    // 2. In the LFT project root (for development when running from other directories)
-    var templatesRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates");
-
-    if (!Directory.Exists(templatesRoot))
-    {
-        var assemblyLocation = typeof(Program).Assembly.Location;
-        var projectRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(assemblyLocation)!, "..", "..", "..", "..", ".."));
-        templatesRoot = Path.Combine(projectRoot, "templates");
-    }
-
-    if (!Directory.Exists(templatesRoot))
-    {
-        templatesRoot = Path.Combine(Directory.GetCurrentDirectory(), "templates");
-    }
-
-    var packLoader = new TemplatePackLoader(templatesRoot);
-
-    // Path Resolver (implements both ISmartPathResolver and IPathResolver)
-    var pathResolver = new SuffixBasedPathResolver();
-
-    var variableResolver = new VariableResolver(new IVariableProvider[]
-    {
-        new CliVariableProvider(),
-        new ProjectConfigVariableProvider(profile),  // Load from lft.config.json first
-        new ConventionsVariableProvider(),           // Then apply conventions (can use config values)
-        new SmartContextVariableProvider(pathResolver, Directory.GetCurrentDirectory(), profile)
-    });
-    var renderer = new LiquidTemplateRenderer();
-
-    // StepExecutor now receives the path resolver for discovery mode and code injector
-    var codeInjector = new CSharpCodeInjector();
-    var stepExecutor = new StepExecutor(templatesRoot, renderer, pathResolver, codeInjector);
-
-    // Project analyzer for intelligent discovery
-    var projectAnalyzer = new ProjectAnalyzer();
-
-    ICodeGenerationEngine engine = new TemplateCodeGenerationEngine(
-        packLoader,
-        variableResolver,
-        stepExecutor,
-        projectAnalyzer
-    );
-
-    IFileWriter fileWriter = new DiskFileWriter();
-    IFileIntegrationService integrationService = new AnchorIntegrationService();
-
-    // Syntax validation step (injections now happen via template 'inject' action)
-    ICSharpSyntaxValidator syntaxValidator = new CSharpSyntaxValidator();
-    var validationStep = new SyntaxValidationStep(syntaxValidator);
-
-    var steps = new IGenerationStep[] { validationStep };
-
-    // Pipeline (no longer needs pathResolver - StepExecutor handles path resolution)
-    var pipeline = new GenPipeline(engine, integrationService, fileWriter, steps);
-
-    Console.WriteLine($"[LFT] Generating CRUD for entity '{entityName}' (lang: {language})...");
-
-    try
-    {
-        await pipeline.ExecuteAsync(request, dryRun);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[ERROR] Pipeline failed: {ex.Message}");
-        Console.WriteLine(ex.StackTrace);
-    }
-}
-
-static CrudGenerationOptions ParseOptions(string[] args, string entityName)
-{
-    var language = "csharp";
-    var dryRun = false;
-    string? ddl = null;
-    string? ddlFile = null;
-    SqlObjectKind? sqlObjectKindHint = null;
-    string? sqlObjectNameHint = null;
-    string? profile = null;
-
-    for (var i = 3; i < args.Length; i++)
-    {
-        if (string.Equals(args[i], "--lang", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            language = args[i + 1];
-            i++;
-        }
-        else if (string.Equals(args[i], "--dry-run", StringComparison.OrdinalIgnoreCase))
-        {
-            dryRun = true;
-        }
-        else if (string.Equals(args[i], "--profile", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            profile = args[i + 1];
-            i++;
-        }
-        else if (string.Equals(args[i], "--ddl", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            ddl = args[i + 1];
-            i++;
-        }
-        else if (string.Equals(args[i], "--ddl-file", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            ddlFile = args[i + 1];
-            i++;
-        }
-        else if (string.Equals(args[i], "--sql-object-kind", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            var kindValue = args[i + 1];
-            if (string.Equals(kindValue, "table", StringComparison.OrdinalIgnoreCase))
-            {
-                sqlObjectKindHint = SqlObjectKind.Table;
-            }
-            else if (string.Equals(kindValue, "view", StringComparison.OrdinalIgnoreCase))
-            {
-                sqlObjectKindHint = SqlObjectKind.View;
-            }
-            i++;
-        }
-        else if (string.Equals(args[i], "--sql-object-name", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-        {
-            sqlObjectNameHint = args[i + 1];
-            i++;
-        }
-    }
-
-    return new CrudGenerationOptions(
-        EntityName: entityName,
-        Language: language,
-        DryRun: dryRun,
-        Ddl: ddl,
-        DdlFile: ddlFile,
-        SqlObjectKindHint: sqlObjectKindHint,
-        SqlObjectNameHint: sqlObjectNameHint,
-        Profile: profile);
+    return true;
 }
 
 static void PrintUsage()
 {
     Console.WriteLine("Usage:");
-    Console.WriteLine("  lft gen crud <EntityName> [--lang <language>] [--profile <profile>] [--dry-run]");
-    Console.WriteLine("  lft gen crud <EntityName> [--lang <language>]");
-    Console.WriteLine("  lft gen crud <EntityName> [--ddl \"<sql-script>\"]");
-    Console.WriteLine("  lft gen crud <EntityName> [--ddl-file <path-to-sql>]");
-    Console.WriteLine("  lft gen crud <EntityName> [--sql-object-kind table|view] [--sql-object-name <name>]");
+    Console.WriteLine("  lft gen crud <EntityName> [options]");
+    Console.WriteLine("  lft gen crud --set modelName=<EntityName> [--set key=value ...] [options]");
     Console.WriteLine();
     Console.WriteLine("Options:");
+    Console.WriteLine("  --set key=value      Set a variable (can be repeated)");
     Console.WriteLine("  --lang <language>    Target language (default: csharp)");
-    Console.WriteLine("  --profile <profile>  Config profile from lft.config.json (e.g., accounts, transactions-app)");
+    Console.WriteLine("  --profile <profile>  Config profile from lft.config.json");
     Console.WriteLine("  --dry-run            Preview changes without writing files");
     Console.WriteLine();
+    Console.WriteLine("Common variables:");
+    Console.WriteLine("  modelName            Entity name (e.g., PhoneType)");
+    Console.WriteLine("  isMql                Enable MQL support (true/false)");
+    Console.WriteLine("  keyType              Primary key type (byte, int, long, Guid)");
+    Console.WriteLine("  isRepositoryView     Is a read-only view (true/false)");
+    Console.WriteLine();
     Console.WriteLine("Examples:");
-    Console.WriteLine("  lft gen crud User --lang csharp");
-    Console.WriteLine("  lft gen crud PhoneType --profile transactions-app");
-    Console.WriteLine("  lft gen crud User --ddl \"CREATE TABLE dbo.Users (...)\"");
-    Console.WriteLine("  lft gen crud User --ddl-file ./sql/Users.sql");
+    Console.WriteLine("  lft gen crud User");
+    Console.WriteLine("  lft gen crud PhoneType --profile accounts");
+    Console.WriteLine("  lft gen crud --set modelName=PhoneType --set isMql=true --set keyType=byte");
 }

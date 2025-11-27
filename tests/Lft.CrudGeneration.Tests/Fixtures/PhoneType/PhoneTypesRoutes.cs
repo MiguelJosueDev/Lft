@@ -1,0 +1,35 @@
+using LiveFree.Core.AspNetCore.Extensions;
+using LiveFree.Core.AspNetCore.Routing;
+using LiveFree.Mql.Models;
+using LiveFree.Accounts.Api.Endpoints;
+using LiveFree.Accounts.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+
+namespace LiveFree.Accounts.Api.Routes;
+
+public static class PhoneTypesRoutes
+{
+    public static void MapPhoneTypesRoutes(
+        this WebApplication app,
+        string basePrefix,
+        string prefix = "phone-types")
+    {
+        var group = app
+            .MapModelRoutes<PhoneTypeModel, IPhoneTypesEndpoint, byte>(basePrefix, prefix, "PhoneTypes")
+            .AddGet()
+            .AddCreate()
+            .AddUpdate()
+            .AddDelete()
+            .Builder
+            .RequireAuthorization();
+        group.MapDefaultPost<MqlQueryResult<PhoneTypeModel>>(
+            pattern: "/query",
+            routeName: "QueryPhoneTypes",
+            handler: (
+                    [FromBody] string query,
+                    [FromServices] IPhoneTypesEndpoint endpoint)
+                => endpoint.QueryAsync(query));
+
+    }
+}

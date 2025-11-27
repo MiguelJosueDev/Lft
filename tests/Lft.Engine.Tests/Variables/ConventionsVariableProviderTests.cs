@@ -172,7 +172,7 @@ public class ConventionsVariableProviderTests
         var variables = context.AsReadOnly();
         variables["_ModelName"].Should().Be(entityName);
         variables["_EntityKebab"].Should().NotBeNull();
-        variables["_EntityKebab"].ToString().Should().NotBeNullOrEmpty();
+        variables["_EntityKebab"]!.ToString().Should().NotBeNullOrEmpty();
     }
 
     [Theory]
@@ -340,12 +340,21 @@ public class ConventionsVariableProviderTests
         // Assert
         var variables = context.AsReadOnly();
         variables["keyType"].Should().Be("int");
-        variables["isReadOnly"].Should().BeFalse();
+        ((bool)variables["isReadOnly"]!).Should().BeFalse();
 
-        dynamic modelDefinition = variables["modelDefinition"]!;
-        ((string)modelDefinition.entity.table).Should().Be("Users");
-        var properties = (IEnumerable<object>)modelDefinition.properties;
-        properties.Should().Contain(p => ((dynamic)p).name == "UserName");
-        properties.Should().Contain(p => ((dynamic)p).name == "IsActive");
+        // Use reflection-safe approach instead of dynamic to avoid expression tree issues
+        var modelDefinition = variables["modelDefinition"] as IDictionary<string, object>;
+        modelDefinition.Should().NotBeNull();
+
+        var entity = modelDefinition!["entity"] as IDictionary<string, object>;
+        entity.Should().NotBeNull();
+        entity!["table"].Should().Be("Users");
+
+        var properties = modelDefinition["properties"] as IEnumerable<object>;
+        properties.Should().NotBeNull();
+
+        var propList = properties!.Cast<IDictionary<string, object>>().ToList();
+        propList.Should().Contain(p => (string)p["name"] == "UserName");
+        propList.Should().Contain(p => (string)p["name"] == "IsActive");
     }
 }

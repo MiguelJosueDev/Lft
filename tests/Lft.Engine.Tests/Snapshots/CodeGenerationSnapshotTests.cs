@@ -53,10 +53,10 @@ public class CodeGenerationSnapshotTests
     }
 
     [Fact]
-    public async Task GenerateCrud_ForProduct_ShouldMatchSnapshot()
+    public async Task GenerateCrud_ForPhoneType_ShouldMatchSnapshot()
     {
-        // Arrange
-        var request = new GenerationRequest("Product", "csharp",
+        // Arrange - PhoneType is our static reference from Artemis accounts-app
+        var request = new GenerationRequest("PhoneType", "csharp",
             commandName: "crud",
             templatePack: "main");
 
@@ -73,7 +73,7 @@ public class CodeGenerationSnapshotTests
 
         await Verify(snapshot)
             .UseDirectory("Verified")
-            .UseFileName("Product_Crud");
+            .UseFileName("PhoneType_Crud");
     }
 
     [Theory]

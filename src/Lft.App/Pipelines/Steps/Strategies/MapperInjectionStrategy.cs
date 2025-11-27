@@ -60,7 +60,8 @@ public class MapperInjectionStrategy : IInjectionStrategy
             ClassNameSuffix: "MappingProfile",
             MethodName: className,
             Snippet: snippet,
-            Position: CodeInjectionPosition.End
+            Position: CodeInjectionPosition.End,
+            Pattern: CodeInjectionPattern.CreateMapBlock
         );
 
         _logger.LogInformation("Injecting mapping for {Entity} into {File}", entity, targetFile);

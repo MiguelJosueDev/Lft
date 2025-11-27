@@ -1,0 +1,17 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using RepoDb.Attributes;
+
+namespace LiveFree.Accounts.Repositories.SqlServer.Entities;
+
+// TODO: PhoneType - Review Entity Configuration
+[Table("PhoneTypes", Schema = "dbo")]
+public class PhoneTypeEntity
+{
+    [Key, Primary]
+    [Column("PhoneTypeID"), TypeMap(DbType.Byte)]
+    public int Id { get; set; }
+    public string PhoneTypeName { get; set; }
+    public string PhoneTypeDesc { get; set; }
+}

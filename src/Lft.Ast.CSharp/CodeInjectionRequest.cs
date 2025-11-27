@@ -5,5 +5,6 @@ public sealed record CodeInjectionRequest(
     string ClassNameSuffix,   // ej. "Extensions"
     string MethodName,        // ej. "MapModelRoutes" o "MapGroup"
     string Snippet,           // ej. "endpoints.MapFundingTypeEndpoints();"
-    CodeInjectionPosition Position = CodeInjectionPosition.End
+    CodeInjectionPosition Position = CodeInjectionPosition.End,
+    CodeInjectionPattern Pattern = CodeInjectionPattern.Default
 );

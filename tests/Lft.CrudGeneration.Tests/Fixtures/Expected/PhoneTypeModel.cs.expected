@@ -1,0 +1,9 @@
+namespace LiveFree.Accounts.Models;
+
+public class PhoneTypeModel
+{
+    public int Id { get; set; }
+    public string PhoneTypeName { get; set; }
+    public string PhoneTypeDesc { get; set; }
+
+}

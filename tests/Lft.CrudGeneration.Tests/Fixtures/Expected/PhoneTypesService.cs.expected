@@ -1,0 +1,17 @@
+using LiveFree.Core.Service;
+using LiveFree.Mql.Models;
+using LiveFree.Accounts.Interfaces;
+using LiveFree.Accounts.Models;
+using LiveFree.Accounts.Repositories.SqlServer;
+using Microsoft.Extensions.Logging;
+
+namespace LiveFree.Accounts.Services;
+
+public class PhoneTypesService(
+    IPhoneTypesRepository repository,
+    ILogger<PhoneTypeModel> logger)
+    : BaseModelService<IPhoneTypesRepository, PhoneTypeModel, int>(repository, logger), IPhoneTypesService
+{
+    public Task<MqlQueryResult<PhoneTypeModel>> QueryMqlAsync(string query)
+        => Repository.QueryMqlAsync(query);
+}

@@ -107,7 +107,7 @@ public sealed class ProjectConfigVariableProvider : IVariableProvider
         return null;
     }
 
-    private static List<LftProfile>? LoadProfiles(string configPath)
+    private List<LftProfile>? LoadProfiles(string configPath)
     {
         try
         {

@@ -34,10 +34,10 @@ public sealed class ConventionsVariableProvider : IVariableProvider
         // Base namespace (can be overridden by lft.config.json)
         ctx.SetDefault("BaseNamespaceName", "Lft.Generated");
 
-        // Default configuration values
-        ctx.Set("keyType", "long");
-        ctx.Set("isMql", false);
-        ctx.Set("isRepositoryView", false);
+        // Default configuration values (use SetDefault to allow CLI --set overrides)
+        ctx.SetDefault("keyType", "long");
+        ctx.SetDefault("isMql", false);
+        ctx.SetDefault("isRepositoryView", false);
         ctx.Set("isReadOnly", request.CrudSchemaDefinition?.IsReadOnly ?? false);
 
         // Main module (can be overridden by lft.config.json)

@@ -1,0 +1,30 @@
+using AutoMapper;
+using LiveFree.Core.Repository;
+using LiveFree.Core.Repository.MQL;
+using LiveFree.Core.Repository.RepoDB;
+using LiveFree.Mql.Models;
+using LiveFree.Accounts.Models;
+using LiveFree.Accounts.Repositories.SqlServer.Entities;
+using Microsoft.Extensions.Logging;
+using RepoDb;
+
+namespace LiveFree.Accounts.Repositories.SqlServer;
+
+public interface IPhoneTypesRepository : IRepository<PhoneTypeModel, byte>, IMqlRepository<PhoneTypeModel>
+{
+
+}
+
+public class PhoneTypesRepository(
+    IAccountsConnectionFactory connectionFactory,
+    IMapper mapper,
+    IMqlQuery<PhoneTypeModel> mql,
+    ILogger<PhoneTypeEntity> logger,
+    IAccountsUnitOfWork unitOfWork)
+    : BaseRepository<PhoneTypeModel, PhoneTypeEntity, byte>(connectionFactory, mapper, logger, unitOfWork),
+        IPhoneTypesRepository
+{
+
+    public Task<MqlQueryResult<PhoneTypeModel>> QueryMqlAsync(string query)
+        => mql.ExecuteAsync(query);
+}

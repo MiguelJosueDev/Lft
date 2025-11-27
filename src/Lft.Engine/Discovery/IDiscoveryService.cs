@@ -1,3 +1,4 @@
+using Lft.Discovery;
 using Lft.Engine.Variables;
 
 namespace Lft.Engine.Discovery;

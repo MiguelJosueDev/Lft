@@ -9,6 +9,7 @@ public sealed class GenerationRequest
     public string TemplatePack { get; }
     public CrudSchemaDefinition? CrudSchemaDefinition { get; }
     public string? Profile { get; }
+    public IReadOnlyDictionary<string, string> Variables { get; }
 
     public GenerationRequest(
         string entityName,
@@ -17,7 +18,8 @@ public sealed class GenerationRequest
         string commandName = "crud",
         string templatePack = "main",
         CrudSchemaDefinition? crudSchemaDefinition = null,
-        string? profile = null)
+        string? profile = null,
+        Dictionary<string, string>? variables = null)
     {
         EntityName = entityName ?? throw new ArgumentNullException(nameof(entityName));
         Language = language ?? throw new ArgumentNullException(nameof(language));
@@ -26,5 +28,6 @@ public sealed class GenerationRequest
         TemplatePack = templatePack;
         CrudSchemaDefinition = crudSchemaDefinition;
         Profile = profile;
+        Variables = variables ?? new Dictionary<string, string>();
     }
 }

@@ -57,7 +57,8 @@ public class ServiceInjectionStrategy : IInjectionStrategy
             ClassNameSuffix: "ServiceRegistrationExtensions",
             MethodName: $"Add{moduleName}Services",
             Snippet: snippet,
-            Position: CodeInjectionPosition.End
+            Position: CodeInjectionPosition.End,
+            Pattern: CodeInjectionPattern.AddScopedBlock
         );
 
         _logger.LogInformation("Injecting service registration for {Entity} into {File}", entity, targetFile);

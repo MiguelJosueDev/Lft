@@ -47,10 +47,11 @@ public class GenPipeline
             var fullPath = file.Path;
 
             // Calculate plan (Create or Modify)
-            // Use Replace strategy for injected files, Anchor for others
+            // Use Replace strategy for both new files and modifications
+            // Anchor strategy is only for injection snippets (which have IsModification=true)
             var options = new IntegrationOptions
             {
-                Strategy = file.IsModification ? IntegrationStrategy.Replace : IntegrationStrategy.Anchor,
+                Strategy = IntegrationStrategy.Replace,
                 CheckIdempotency = true
             };
             var plan = await _integrationService.IntegrateAsync(fullPath, file.Content, options, ct);

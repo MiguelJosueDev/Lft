@@ -51,7 +51,8 @@ public class RepositoryInjectionStrategy : IInjectionStrategy
             ClassNameSuffix: "ServiceRegistrationExtensions",
             MethodName: $"Add{moduleName}Repositories",
             Snippet: snippet,
-            Position: CodeInjectionPosition.End
+            Position: CodeInjectionPosition.End,
+            Pattern: CodeInjectionPattern.AddScopedBlock
         );
 
         _logger.LogInformation("Injecting repository registration for {Entity} into {File}", entity, targetFile);
