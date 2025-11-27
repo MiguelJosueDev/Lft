@@ -52,6 +52,16 @@ public sealed record ProjectManifest
     public IReadOnlyList<InjectionPoint> InjectionPoints { get; init; } = [];
 
     /// <summary>
+    /// Discovered frontend router entry points (JS/TS files).
+    /// </summary>
+    public IReadOnlyList<string> FrontendRouterFiles { get; init; } = [];
+
+    /// <summary>
+    /// Discovered frontend route array files (JS/TS files).
+    /// </summary>
+    public IReadOnlyList<string> FrontendRoutesFiles { get; init; } = [];
+
+    /// <summary>
     /// Gets the layer info by type.
     /// </summary>
     public LayerInfo? GetLayer(LayerType type) => type switch
@@ -117,6 +127,18 @@ public sealed record ProjectManifest
             vars[$"_Inject{targetName}Path"] = point.FilePath;
             vars[$"_Inject{targetName}Class"] = point.ClassName;
             vars[$"_Inject{targetName}Method"] = point.MethodName;
+        }
+
+        if (FrontendRouterFiles.Count > 0)
+        {
+            vars["_FrontendRouterFile"] = FrontendRouterFiles[0];
+            vars["_FrontendRouterFiles"] = FrontendRouterFiles;
+        }
+
+        if (FrontendRoutesFiles.Count > 0)
+        {
+            vars["_FrontendRoutesFile"] = FrontendRoutesFiles[0];
+            vars["_FrontendRoutesFiles"] = FrontendRoutesFiles;
         }
 
         return vars;

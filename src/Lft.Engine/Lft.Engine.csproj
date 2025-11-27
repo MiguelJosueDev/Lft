@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Lft.Domain\Lft.Domain.csproj" />
     <ProjectReference Include="..\Lft.Discovery\Lft.Discovery.csproj" />
+    <ProjectReference Include="..\Lft.Ast.JavaScript\Lft.Ast.JavaScript.csproj" />
   </ItemGroup>
 
   <ItemGroup>

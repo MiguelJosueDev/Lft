@@ -184,3 +184,14 @@ entryPoints:
         action: create
         source: resources/app/routing/router_module.liquid
         output: "features/routing/routers/{{ _ModuleName }}Router.jsx"
+
+      - name: InjectFrontendRouterImport
+        action: js-ast-import
+        file: "{{ _FrontendRouterFile }}"
+        import: "import {{ _ModuleName }}Router from \"./routers/{{ _ModuleName }}Router\";"
+
+      - name: RegisterFrontendRoute
+        action: js-ast-array-insert
+        file: "{{ _FrontendRoutesFile }}"
+        array: "routes"
+        snippet: "{ path: '/{{ _routeModuleName }}', element: <{{ _ModuleName }}Router /> },"

@@ -48,6 +48,10 @@ public sealed partial class ProjectAnalyzer : IProjectAnalyzer
         // 6. Locate injection points
         var injectionPoints = await _injectionPointLocator.LocateAllAsync(apiRoot, ct);
 
+        // 7. Discover frontend router and route files
+        var frontendRouters = DiscoverFrontendRouters(appRoot);
+        var frontendRoutes = DiscoverFrontendRoutes(appRoot);
+
         return new ProjectManifest
         {
             AppName = appName,
@@ -63,7 +67,9 @@ public sealed partial class ProjectAnalyzer : IProjectAnalyzer
             Functions = layers.GetValueOrDefault(LayerType.Functions),
             Host = layers.GetValueOrDefault(LayerType.Host),
             Conventions = conventions,
-            InjectionPoints = injectionPoints.ToList()
+            InjectionPoints = injectionPoints.ToList(),
+            FrontendRouterFiles = frontendRouters,
+            FrontendRoutesFiles = frontendRoutes
         };
     }
 
@@ -100,6 +106,62 @@ public sealed partial class ProjectAnalyzer : IProjectAnalyzer
         }
 
         return projects;
+    }
+
+    private static IReadOnlyList<string> DiscoverFrontendRouters(string? appRoot)
+    {
+        var routers = new List<string>();
+
+        if (string.IsNullOrEmpty(appRoot) || !Directory.Exists(appRoot))
+            return routers;
+
+        try
+        {
+            var files = Directory.GetFiles(appRoot, "*Router.*", SearchOption.AllDirectories)
+                .Where(IsJsTsFile)
+                .OrderByDescending(f => f.Contains(Path.Combine("routing", "routers"), StringComparison.OrdinalIgnoreCase))
+                .ThenBy(f => f)
+                .ToList();
+
+            routers.AddRange(files);
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return routers;
+    }
+
+    private static IReadOnlyList<string> DiscoverFrontendRoutes(string? appRoot)
+    {
+        var routes = new List<string>();
+
+        if (string.IsNullOrEmpty(appRoot) || !Directory.Exists(appRoot))
+            return routes;
+
+        try
+        {
+            var files = Directory.GetFiles(appRoot, "*routes.*", SearchOption.AllDirectories)
+                .Where(IsJsTsFile)
+                .OrderByDescending(f => f.Contains(Path.Combine("routing", "routers"), StringComparison.OrdinalIgnoreCase))
+                .ThenBy(f => f)
+                .ToList();
+
+            routes.AddRange(files);
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return routes;
+    }
+
+    private static bool IsJsTsFile(string path)
+    {
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        return ext is ".js" or ".jsx" or ".ts" or ".tsx";
     }
 
     private Dictionary<LayerType, LayerInfo> CategorizeProjects(List<ProjectInfo> projects)

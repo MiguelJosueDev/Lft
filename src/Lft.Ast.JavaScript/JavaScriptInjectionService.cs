@@ -13,7 +13,7 @@ public class JavaScriptInjectionService : IJavaScriptInjectionService
         }
 
         var content = await File.ReadAllTextAsync(filePath);
-        var parser = new JavaScriptParser();
+        var parser = new JavaScriptParser(new ParserOptions { Range = true, Tolerant = true });
         Program script;
         try
         {
@@ -32,8 +32,6 @@ public class JavaScriptInjectionService : IJavaScriptInjectionService
             }
         }
 
-        // Check if import already exists (simple string check for now, could be more robust with AST)
-        // Normalize spaces for check
         if (content.Contains(importStatement.Trim()))
         {
             return;
@@ -52,7 +50,7 @@ public class JavaScriptInjectionService : IJavaScriptInjectionService
             // or just simple line scanning if we don't have range info enabled by default.
             // Let's re-parse with location info to be safe.
 
-            parser = new JavaScriptParser(new ParserOptions { Tokens = true, Tolerant = true });
+            parser = new JavaScriptParser(new ParserOptions { Tokens = true, Tolerant = true, Range = true });
             try
             {
                 script = parser.ParseModule(content);
@@ -89,7 +87,7 @@ public class JavaScriptInjectionService : IJavaScriptInjectionService
         }
 
         var content = await File.ReadAllTextAsync(filePath);
-        var parser = new JavaScriptParser(new ParserOptions { Tokens = true, Tolerant = true });
+        var parser = new JavaScriptParser(new ParserOptions { Tokens = true, Tolerant = true, Range = true });
         Program script;
         try
         {
@@ -150,12 +148,15 @@ public class JavaScriptInjectionService : IJavaScriptInjectionService
             throw new InvalidOperationException($"Array '{arrayName}' not found in {filePath}");
         }
 
-        // Find the insertion point (end of the array, before ']')
-        // We want to insert before the closing bracket.
-        // The Range.End includes the closing bracket.
-        // But simply inserting at Range.End - 1 might be risky if there's whitespace/comments.
-        // A safer bet: Find the last element.
+        // Check if snippet already exists within the array text (idempotency)
+        var arrayText = content.Substring(arrayExpression.Range.Start, arrayExpression.Range.End - arrayExpression.Range.Start);
+        if (arrayText.Contains(snippet.Trim()))
+        {
+            return;
+        }
 
+        // Find the insertion point (end of the array, before ']')
+        
         int insertPos;
         string prefix = "";
 
