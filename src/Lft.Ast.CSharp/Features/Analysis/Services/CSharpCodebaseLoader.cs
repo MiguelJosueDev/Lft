@@ -3,8 +3,10 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
+using Lft.Ast.CSharp.Features.Analysis.Models;
+using Lft.Ast.CSharp.Features.Analysis.Utils;
 
-namespace Lft.Ast.CSharp;
+namespace Lft.Ast.CSharp.Features.Analysis.Services;
 
 public class CSharpCodebaseLoader : ICSharpCodebaseLoader
 {
@@ -45,7 +47,7 @@ public class CSharpCodebaseLoader : ICSharpCodebaseLoader
         foreach (var document in project.Documents)
         {
             if (document.SourceCodeKind != SourceCodeKind.Regular) continue;
-            
+
             var (docInfo, nodes) = await ProcessDocumentAsync(document, cancellationToken);
             documents.Add(docInfo);
             archNodes.AddRange(nodes);
@@ -116,7 +118,7 @@ public class CSharpCodebaseLoader : ICSharpCodebaseLoader
         foreach (var node in nodes)
         {
             var symbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
-            
+
             if (symbol is INamedTypeSymbol typeSymbol)
             {
                 // Filter out system types or primitives if desired, but for now keep everything

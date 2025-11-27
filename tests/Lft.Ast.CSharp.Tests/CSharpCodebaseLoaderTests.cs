@@ -1,4 +1,4 @@
-using Lft.Ast.CSharp;
+using Lft.Ast.CSharp.Features.Analysis.Services;
 using Xunit;
 
 namespace Lft.Ast.CSharp.Tests;
@@ -27,14 +27,14 @@ public class CSharpCodebaseLoaderTests : IDisposable
         // Arrange
         var projectPath = Path.Combine(_tempDir, "TestProject.csproj");
         var codePath = Path.Combine(_tempDir, "MyClass.cs");
-        
+
         // Create a minimal valid csproj
         var csprojContent = @"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
   </PropertyGroup>
 </Project>";
-        
+
         var codeContent = @"
 namespace MyNamespace;
 
@@ -52,7 +52,7 @@ public class MyClass
         // Note: MSBuildWorkspace requires MSBuild to be installed. 
         // In some CI/Test environments this might fail if full SDK isn't discoverable.
         // We'll try-catch to provide a meaningful skip or error.
-        try 
+        try
         {
             var codebase = await loader.LoadProjectAsync(projectPath);
 

@@ -1,62 +1,81 @@
+using Lft.Ast.CSharp.Features.Injection.Models;
+using Lft.Ast.CSharp.Features.Injection.Services;
+
 namespace Lft.Ast.CSharp.Tests;
 
 public class CSharpInjectionServiceTests
 {
     private readonly CSharpInjectionService _sut = new();
 
-    #region AddScopedBlock Pattern Tests
+    /// <summary>
+    /// Helper to load sample files from the Samples folder.
+    /// </summary>
+    private static string LoadSample(string relativePath)
+    {
+        var basePath = Path.Combine(AppContext.BaseDirectory, "Samples", relativePath);
+        return File.ReadAllText(basePath);
+    }
+
+    #region Real Sample Tests - Api Layer
 
     [Fact]
-    public void InjectAddScoped_GroupsWithExistingAddScopedCalls_BeforeAddMqlQueries()
+    public void InjectAddScoped_Api_AccountsServicesExtensions_InsertsEndpointAfterLastEndpoint()
     {
-        const string source = @"
-public static class ServiceRegistrationExtensions
-{
-    public static IServiceCollection AddAccountsRepositories(this IServiceCollection services)
-    {
-        services.AddScoped<IPhoneTypesRepository, PhoneTypesRepository>();
-        services.AddMqlQueries(typeof(IPhoneTypesRepository).Assembly);
-        return services;
-    }
-}";
-        var snippet = "services.AddScoped<INewEntityRepository, NewEntityRepository>();";
+        // Real AccountsServicesExtensions.cs from lf-artemis
+        var source = LoadSample("Api/AccountsServicesExtensions.cs");
+        var snippet = "services.AddScoped<IUsersEndpoint, UsersEndpoint>();";
 
         var result = _sut.InjectIntoMethodSource(
             source,
-            classNameSuffix: "ServiceRegistrationExtensions",
-            methodName: "AddAccountsRepositories",
+            classNameSuffix: "AccountsServicesExtensions",
+            methodName: "AddAccountsServices",
             snippet: snippet,
             position: CodeInjectionPosition.End,
             pattern: CodeInjectionPattern.AddScopedBlock);
 
-        // Verify: AddScoped calls are grouped BEFORE AddMqlQueries
         var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
-        var addScopedIndex1 = Array.FindIndex(lines, l => l.Contains("IPhoneTypesRepository, PhoneTypesRepository"));
-        var addScopedIndex2 = Array.FindIndex(lines, l => l.Contains("INewEntityRepository, NewEntityRepository"));
-        var addMqlIndex = Array.FindIndex(lines, l => l.Contains("AddMqlQueries"));
+        var phoneTypesIndex = Array.FindIndex(lines, l => l.Contains("IPhoneTypesEndpoint"));
+        var usersIndex = Array.FindIndex(lines, l => l.Contains("IUsersEndpoint"));
+        var returnIndex = Array.FindIndex(lines, l => l.StartsWith("return"));
 
-        Assert.True(addScopedIndex1 >= 0, "First AddScoped not found");
-        Assert.True(addScopedIndex2 >= 0, "Second AddScoped not found");
-        Assert.True(addMqlIndex >= 0, "AddMqlQueries not found");
-        Assert.True(addScopedIndex1 < addScopedIndex2, "First AddScoped should come before second");
-        Assert.True(addScopedIndex2 < addMqlIndex, "Second AddScoped should come before AddMqlQueries");
+        Assert.True(usersIndex > phoneTypesIndex, "UsersEndpoint should be after PhoneTypesEndpoint");
+        Assert.True(usersIndex < returnIndex, "UsersEndpoint should be before return");
     }
 
     [Fact]
-    public void InjectAddScoped_InsertsAfterExistingBlock_WhenMultipleAddScopedExist()
+    public void InjectMapRoutes_Api_AccountsRoutesExtensions_InsertsAfterLastRoute()
     {
-        const string source = @"
-public static class ServiceRegistrationExtensions
-{
-    public static IServiceCollection AddAccountsServices(this IServiceCollection services)
-    {
-        services.AddScoped<IFirstService, FirstService>();
-        services.AddScoped<ISecondService, SecondService>();
-        services.AddMqlQueries(typeof(IFirstService).Assembly);
-        return services;
+        // Real AccountsRoutesExtensions.cs from lf-artemis
+        var source = LoadSample("Api/AccountsRoutesExtensions.cs");
+        var snippet = "app.MapUsersRoutes(basePrefix: basePrefix, prefix: \"users\");";
+
+        var result = _sut.InjectIntoMethodSource(
+            source,
+            classNameSuffix: "AccountsRoutesExtensions",
+            methodName: "AddAccountsRoutes",
+            snippet: snippet,
+            position: CodeInjectionPosition.End,
+            pattern: CodeInjectionPattern.MapRoutesBlock);
+
+        var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
+        var phoneTypesIndex = Array.FindIndex(lines, l => l.Contains("MapPhoneTypesRoutes"));
+        var usersIndex = Array.FindIndex(lines, l => l.Contains("MapUsersRoutes"));
+        var returnIndex = Array.FindIndex(lines, l => l.StartsWith("return"));
+
+        Assert.True(usersIndex > phoneTypesIndex, "MapUsersRoutes should be after MapPhoneTypesRoutes");
+        Assert.True(usersIndex < returnIndex, "MapUsersRoutes should be before return");
     }
-}";
-        var snippet = "services.AddScoped<IThirdService, ThirdService>();";
+
+    #endregion
+
+    #region Real Sample Tests - Services Layer
+
+    [Fact]
+    public void InjectAddScoped_Services_ServiceRegistrationExtensions_InsertsAfterLastService()
+    {
+        // Real Services/ServiceRegistrationExtensions.cs from lf-artemis
+        var source = LoadSample("Services/ServiceRegistrationExtensions.cs");
+        var snippet = "services.AddScoped<IUsersService, UsersService>();";
 
         var result = _sut.InjectIntoMethodSource(
             source,
@@ -67,29 +86,42 @@ public static class ServiceRegistrationExtensions
             pattern: CodeInjectionPattern.AddScopedBlock);
 
         var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
-        var firstIndex = Array.FindIndex(lines, l => l.Contains("IFirstService, FirstService"));
-        var secondIndex = Array.FindIndex(lines, l => l.Contains("ISecondService, SecondService"));
-        var thirdIndex = Array.FindIndex(lines, l => l.Contains("IThirdService, ThirdService"));
-        var mqlIndex = Array.FindIndex(lines, l => l.Contains("AddMqlQueries"));
+        var phoneTypesIndex = Array.FindIndex(lines, l => l.Contains("IPhoneTypesService"));
+        var usersIndex = Array.FindIndex(lines, l => l.Contains("IUsersService"));
+        var returnIndex = Array.FindIndex(lines, l => l.StartsWith("return"));
 
-        Assert.True(firstIndex < secondIndex);
-        Assert.True(secondIndex < thirdIndex);
-        Assert.True(thirdIndex < mqlIndex);
+        Assert.True(usersIndex > phoneTypesIndex, "UsersService should be after PhoneTypesService");
+        Assert.True(usersIndex < returnIndex, "UsersService should be before return");
     }
 
     [Fact]
-    public void InjectAddScoped_InsertsAtBeginning_WhenNoExistingServiceRegistrations()
+    public void Idempotency_Services_DoesNotDuplicatePhoneTypesService()
     {
-        const string source = @"
-public static class ServiceRegistrationExtensions
-{
-    public static IServiceCollection AddAccountsRepositories(this IServiceCollection services)
-    {
-        services.AddMqlQueries(typeof(IPhoneTypesRepository).Assembly);
-        return services;
+        var source = LoadSample("Services/ServiceRegistrationExtensions.cs");
+        var snippet = "services.AddScoped<IPhoneTypesService, PhoneTypesService>();";
+
+        var result = _sut.InjectIntoMethodSource(
+            source,
+            classNameSuffix: "ServiceRegistrationExtensions",
+            methodName: "AddAccountsServices",
+            snippet: snippet,
+            position: CodeInjectionPosition.End,
+            pattern: CodeInjectionPattern.AddScopedBlock);
+
+        var count = result.Split("IPhoneTypesService, PhoneTypesService").Length - 1;
+        Assert.Equal(1, count);
     }
-}";
-        var snippet = "services.AddScoped<INewRepository, NewRepository>();";
+
+    #endregion
+
+    #region Real Sample Tests - Repositories Layer
+
+    [Fact]
+    public void InjectAddScoped_Repositories_ServiceRegistrationExtensions_InsertsBeforeAddMqlQueries()
+    {
+        // Real Repositories/ServiceRegistrationExtensions.cs from lf-artemis
+        var source = LoadSample("Repositories/ServiceRegistrationExtensions.cs");
+        var snippet = "services.AddScoped<IUsersRepository, UsersRepository>();";
 
         var result = _sut.InjectIntoMethodSource(
             source,
@@ -100,11 +132,79 @@ public static class ServiceRegistrationExtensions
             pattern: CodeInjectionPattern.AddScopedBlock);
 
         var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
-        var addScopedIndex = Array.FindIndex(lines, l => l.Contains("INewRepository, NewRepository"));
+        var phoneTypesIndex = Array.FindIndex(lines, l => l.Contains("IPhoneTypesRepository, PhoneTypesRepository"));
+        var usersIndex = Array.FindIndex(lines, l => l.Contains("IUsersRepository, UsersRepository"));
         var mqlIndex = Array.FindIndex(lines, l => l.Contains("AddMqlQueries"));
 
-        Assert.True(addScopedIndex < mqlIndex, "AddScoped should be inserted before AddMqlQueries");
+        Assert.True(usersIndex > phoneTypesIndex, "UsersRepository should be after PhoneTypesRepository");
+        Assert.True(usersIndex < mqlIndex, "UsersRepository should be before AddMqlQueries");
     }
+
+    [Fact]
+    public void Idempotency_Repositories_DoesNotDuplicatePhoneTypesRepository()
+    {
+        var source = LoadSample("Repositories/ServiceRegistrationExtensions.cs");
+        var snippet = "services.AddScoped<IPhoneTypesRepository, PhoneTypesRepository>();";
+
+        var result = _sut.InjectIntoMethodSource(
+            source,
+            classNameSuffix: "ServiceRegistrationExtensions",
+            methodName: "AddAccountsRepositories",
+            snippet: snippet,
+            position: CodeInjectionPosition.End,
+            pattern: CodeInjectionPattern.AddScopedBlock);
+
+        var count = result.Split("IPhoneTypesRepository, PhoneTypesRepository").Length - 1;
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public void InjectCreateMap_Repositories_AccountsMappingProfile_InsertsAfterLastCreateMap()
+    {
+        // Real AccountsMappingProfile.cs from lf-artemis
+        var source = LoadSample("Repositories/AccountsMappingProfile.cs");
+        var snippet = "CreateMap<UserModel, UserEntity>().ReverseMap();";
+
+        var result = _sut.InjectIntoMethodSource(
+            source,
+            classNameSuffix: "MappingProfile",
+            methodName: "AccountsMappingProfile",
+            snippet: snippet,
+            position: CodeInjectionPosition.End,
+            pattern: CodeInjectionPattern.CreateMapBlock);
+
+        // Verify the snippet was added
+        Assert.Contains("CreateMap<UserModel, UserEntity>", result);
+
+        // Verify order: should be after the last CreateMap in constructor
+        var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
+        var accountModelIndex = Array.FindIndex(lines, l => l.Contains("CreateMap<AccountModel, DealerModel>"));
+        var userModelIndex = Array.FindIndex(lines, l => l.Contains("CreateMap<UserModel, UserEntity>"));
+
+        Assert.True(userModelIndex > accountModelIndex, "UserModel mapping should be after last existing mapping");
+    }
+
+    [Fact]
+    public void Idempotency_Repositories_DoesNotDuplicatePhoneTypeMapping()
+    {
+        var source = LoadSample("Repositories/AccountsMappingProfile.cs");
+        var snippet = "CreateMap<PhoneTypeModel, PhoneTypeEntity>().ReverseMap();";
+
+        var result = _sut.InjectIntoMethodSource(
+            source,
+            classNameSuffix: "MappingProfile",
+            methodName: "AccountsMappingProfile",
+            snippet: snippet,
+            position: CodeInjectionPosition.End,
+            pattern: CodeInjectionPattern.CreateMapBlock);
+
+        var count = result.Split("CreateMap<PhoneTypeModel, PhoneTypeEntity>").Length - 1;
+        Assert.Equal(1, count);
+    }
+
+    #endregion
+
+    #region AddScopedBlock Pattern Tests (Inline)
 
     [Fact]
     public void InjectAddTransient_AlsoGroupsWithAddScopedBlock()
@@ -131,7 +231,6 @@ public static class ServiceRegistrationExtensions
             pattern: CodeInjectionPattern.AddScopedBlock);
 
         var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
-        var firstIndex = Array.FindIndex(lines, l => l.Contains("IFirstService"));
         var secondIndex = Array.FindIndex(lines, l => l.Contains("ISecondService"));
         var thirdIndex = Array.FindIndex(lines, l => l.Contains("IThirdService"));
         var configureIndex = Array.FindIndex(lines, l => l.Contains("Configure<Options>"));
@@ -142,63 +241,7 @@ public static class ServiceRegistrationExtensions
 
     #endregion
 
-    #region CreateMapBlock Pattern Tests
-
-    [Fact]
-    public void InjectCreateMap_GroupsWithExistingCreateMapCalls()
-    {
-        const string source = @"
-public class AccountsMappingProfile : Profile
-{
-    public AccountsMappingProfile()
-    {
-        CreateMap<PhoneTypeModel, PhoneTypeEntity>().ReverseMap();
-    }
-}";
-        var snippet = "CreateMap<NewModel, NewEntity>().ReverseMap();";
-
-        var result = _sut.InjectIntoMethodSource(
-            source,
-            classNameSuffix: "MappingProfile",
-            methodName: "AccountsMappingProfile",
-            snippet: snippet,
-            position: CodeInjectionPosition.End,
-            pattern: CodeInjectionPattern.CreateMapBlock);
-
-        Assert.Contains("CreateMap<PhoneTypeModel, PhoneTypeEntity>", result);
-        Assert.Contains("CreateMap<NewModel, NewEntity>", result);
-    }
-
-    [Fact]
-    public void InjectCreateMap_InsertsAfterLastCreateMap()
-    {
-        const string source = @"
-public class AccountsMappingProfile : Profile
-{
-    public AccountsMappingProfile()
-    {
-        CreateMap<FirstModel, FirstEntity>().ReverseMap();
-        CreateMap<SecondModel, SecondEntity>().ReverseMap();
-    }
-}";
-        var snippet = "CreateMap<ThirdModel, ThirdEntity>().ReverseMap();";
-
-        var result = _sut.InjectIntoMethodSource(
-            source,
-            classNameSuffix: "MappingProfile",
-            methodName: "AccountsMappingProfile",
-            snippet: snippet,
-            position: CodeInjectionPosition.End,
-            pattern: CodeInjectionPattern.CreateMapBlock);
-
-        var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
-        var firstIndex = Array.FindIndex(lines, l => l.Contains("FirstModel"));
-        var secondIndex = Array.FindIndex(lines, l => l.Contains("SecondModel"));
-        var thirdIndex = Array.FindIndex(lines, l => l.Contains("ThirdModel"));
-
-        Assert.True(firstIndex < secondIndex);
-        Assert.True(secondIndex < thirdIndex);
-    }
+    #region CreateMapBlock Pattern Tests (Inline)
 
     [Fact]
     public void InjectCreateMap_HandlesChainedMethods()
@@ -227,61 +270,6 @@ public class TestMappingProfile : Profile
         Assert.Contains("CreateMap<NewModel, NewEntity>", result);
     }
 
-    #endregion
-
-    #region Idempotency Tests
-
-    [Fact]
-    public void Idempotency_DoesNotDuplicateExistingCreateMapStatement()
-    {
-        const string source = @"
-public class AccountsMappingProfile : Profile
-{
-    public AccountsMappingProfile()
-    {
-        CreateMap<PhoneTypeModel, PhoneTypeEntity>().ReverseMap();
-    }
-}";
-        var snippet = "CreateMap<PhoneTypeModel, PhoneTypeEntity>().ReverseMap();";
-
-        var result = _sut.InjectIntoMethodSource(
-            source,
-            classNameSuffix: "MappingProfile",
-            methodName: "AccountsMappingProfile",
-            snippet: snippet,
-            position: CodeInjectionPosition.End,
-            pattern: CodeInjectionPattern.CreateMapBlock);
-
-        var createMapCount = result.Split("CreateMap<PhoneTypeModel, PhoneTypeEntity>").Length - 1;
-        Assert.Equal(1, createMapCount);
-    }
-
-    [Fact]
-    public void Idempotency_DoesNotDuplicateExistingAddScopedStatement()
-    {
-        const string source = @"
-public static class ServiceRegistrationExtensions
-{
-    public static IServiceCollection AddAccountsRepositories(this IServiceCollection services)
-    {
-        services.AddScoped<IPhoneTypesRepository, PhoneTypesRepository>();
-        return services;
-    }
-}";
-        var snippet = "services.AddScoped<IPhoneTypesRepository, PhoneTypesRepository>();";
-
-        var result = _sut.InjectIntoMethodSource(
-            source,
-            classNameSuffix: "ServiceRegistrationExtensions",
-            methodName: "AddAccountsRepositories",
-            snippet: snippet,
-            position: CodeInjectionPosition.End,
-            pattern: CodeInjectionPattern.AddScopedBlock);
-
-        var addScopedCount = result.Split("AddScoped<IPhoneTypesRepository, PhoneTypesRepository>").Length - 1;
-        Assert.Equal(1, addScopedCount);
-    }
-
     [Fact]
     public void Idempotency_MatchesByTypeArgumentsForCreateMap()
     {
@@ -307,6 +295,65 @@ public class TestMappingProfile : Profile
         // Should detect as duplicate based on type arguments
         var createMapCount = result.Split("CreateMap<MyModel, MyEntity>").Length - 1;
         Assert.Equal(1, createMapCount);
+    }
+
+    #endregion
+
+    #region MapRoutesBlock Pattern Tests (Inline)
+
+    [Fact]
+    public void InjectMapRoutes_InsertsBeforeReturn_WhenNoExistingMapRoutes()
+    {
+        const string source = @"
+public static class RoutesExtensions
+{
+    public static WebApplication AddRoutes(this WebApplication app)
+    {
+        app.UseHttpsRedirection();
+        return app;
+    }
+}";
+        var snippet = "app.MapUsersRoutes();";
+
+        var result = _sut.InjectIntoMethodSource(
+            source,
+            classNameSuffix: "RoutesExtensions",
+            methodName: "AddRoutes",
+            snippet: snippet,
+            position: CodeInjectionPosition.End,
+            pattern: CodeInjectionPattern.MapRoutesBlock);
+
+        var lines = result.Split('\n').Select(l => l.Trim()).ToArray();
+        var usersIndex = Array.FindIndex(lines, l => l.Contains("MapUsersRoutes"));
+        var returnIndex = Array.FindIndex(lines, l => l.StartsWith("return"));
+
+        Assert.True(usersIndex < returnIndex, "MapUsersRoutes should be before return");
+    }
+
+    [Fact]
+    public void Idempotency_DoesNotDuplicateMapRoutesStatement()
+    {
+        const string source = @"
+public static class RoutesExtensions
+{
+    public static WebApplication AddRoutes(this WebApplication app)
+    {
+        app.MapUsersRoutes(basePrefix: ""api"", prefix: ""users"");
+        return app;
+    }
+}";
+        var snippet = "app.MapUsersRoutes(basePrefix: \"api\", prefix: \"users\");";
+
+        var result = _sut.InjectIntoMethodSource(
+            source,
+            classNameSuffix: "RoutesExtensions",
+            methodName: "AddRoutes",
+            snippet: snippet,
+            position: CodeInjectionPosition.End,
+            pattern: CodeInjectionPattern.MapRoutesBlock);
+
+        var mapRoutesCount = result.Split("MapUsersRoutes").Length - 1;
+        Assert.Equal(1, mapRoutesCount);
     }
 
     #endregion

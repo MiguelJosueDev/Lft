@@ -1,4 +1,4 @@
-using Lft.Ast.CSharp;
+using Lft.Ast.CSharp.Features.Injection.Services;
 using Lft.Domain.Models;
 
 namespace Lft.App.Pipelines.Steps.Strategies;

@@ -1,5 +1,5 @@
 using Lft.App.Pipelines.Steps.Strategies;
-using Lft.Ast.CSharp;
+using Lft.Ast.CSharp.Features.Injection.Services;
 using Lft.Domain.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

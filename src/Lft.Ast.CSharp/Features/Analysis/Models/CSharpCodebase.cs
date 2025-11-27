@@ -1,6 +1,6 @@
 using Lft.Analyzer.Core;
 
-namespace Lft.Ast.CSharp;
+namespace Lft.Ast.CSharp.Features.Analysis.Models;
 
 public sealed record CSharpCodebase(
     IReadOnlyList<CSharpProjectInfo> Projects,

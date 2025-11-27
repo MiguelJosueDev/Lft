@@ -1,6 +1,7 @@
 using Lft.Analyzer.Core;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Lft.Ast.CSharp;
+namespace Lft.Ast.CSharp.Features.Analysis.Utils;
 
 public static class CSharpLayerHelper
 {

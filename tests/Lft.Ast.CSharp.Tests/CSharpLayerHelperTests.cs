@@ -1,5 +1,5 @@
 using Lft.Analyzer.Core;
-using Lft.Ast.CSharp;
+using Lft.Ast.CSharp.Features.Analysis.Utils;
 using Xunit;
 
 namespace Lft.Ast.CSharp.Tests;

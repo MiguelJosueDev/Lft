@@ -1,4 +1,6 @@
-namespace Lft.Ast.CSharp;
+using Lft.Ast.CSharp.Features.Injection.Models;
+
+namespace Lft.Ast.CSharp.Features.Injection.Services;
 
 public interface ICSharpInjectionService
 {

@@ -1,4 +1,4 @@
-namespace Lft.Ast.CSharp;
+namespace Lft.Ast.CSharp.Features.Validation.Services;
 
 public interface ICSharpSyntaxValidator
 {

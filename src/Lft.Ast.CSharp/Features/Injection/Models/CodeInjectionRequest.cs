@@ -1,4 +1,4 @@
-namespace Lft.Ast.CSharp;
+namespace Lft.Ast.CSharp.Features.Injection.Models;
 
 public sealed record CodeInjectionRequest(
     string FilePath,

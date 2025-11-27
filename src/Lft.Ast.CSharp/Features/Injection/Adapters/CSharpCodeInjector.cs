@@ -1,6 +1,8 @@
+using Lft.Ast.CSharp.Features.Injection.Models;
+using Lft.Ast.CSharp.Features.Injection.Services;
 using Lft.Domain.Services;
 
-namespace Lft.Ast.CSharp;
+namespace Lft.Ast.CSharp.Features.Injection.Adapters;
 
 /// <summary>
 /// Adapter that implements ICodeInjector using CSharpInjectionService.

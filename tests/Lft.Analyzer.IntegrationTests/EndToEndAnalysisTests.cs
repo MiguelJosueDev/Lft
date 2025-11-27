@@ -1,6 +1,9 @@
 using Lft.Analyzer.Core;
 using Lft.Analyzer.Core.Rules;
 using Lft.Ast.CSharp;
+using Lft.Ast.CSharp.Features.Analysis.Models;
+using Lft.Ast.CSharp.Features.Analysis.Services;
+using Lft.Ast.CSharp.Features.Analysis.Utils;
 using Xunit;
 
 namespace Lft.Analyzer.IntegrationTests;
