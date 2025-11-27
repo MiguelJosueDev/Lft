@@ -25,6 +25,12 @@ public sealed class TemplateStep
     public string? Template { get; init; }      // Code snippet to inject (Liquid template)
     public string? Position { get; init; }      // "beginning" | "end" (default: "end")
 
+    // Properties for JavaScript/TypeScript AST injections
+    public string? File { get; init; }          // Target file for JS AST actions
+    public string? Import { get; init; }        // Import statement for js-ast-import
+    public string? Array { get; init; }         // Array variable name for js-ast-array-insert
+    public string? Snippet { get; init; }       // Snippet to inject for js-ast-array-insert
+
     // Properties for "ast-insert" action (enhanced AST injection)
     public string? InsertionType { get; init; } // "InMethod" | "InConstructor" | "InClass"
     public bool Idempotent { get; init; }       // Check if code already exists before inserting

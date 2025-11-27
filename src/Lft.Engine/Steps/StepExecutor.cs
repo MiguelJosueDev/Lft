@@ -1,3 +1,4 @@
+using Lft.Ast.JavaScript;
 using Lft.Discovery;
 using Lft.Domain.Models;
 using Lft.Domain.Services;
@@ -15,6 +16,7 @@ public sealed class StepExecutor
     private readonly ITemplateRenderer _renderer;
     private readonly IPathResolver? _pathResolver;
     private readonly ICodeInjector? _codeInjector;
+    private readonly IJavaScriptInjectionService? _jsInjectionService;
     private readonly ILogger<StepExecutor> _logger;
     private ProjectManifest? _manifest;
 
@@ -23,12 +25,14 @@ public sealed class StepExecutor
         ITemplateRenderer renderer,
         IPathResolver? pathResolver = null,
         ICodeInjector? codeInjector = null,
+        IJavaScriptInjectionService? jsInjectionService = null,
         ILogger<StepExecutor>? logger = null)
     {
         _templatesRoot = templatesRoot;
         _renderer = renderer;
         _pathResolver = pathResolver;
         _codeInjector = codeInjector;
+        _jsInjectionService = jsInjectionService;
         _logger = logger ?? NullLogger<StepExecutor>.Instance;
     }
 
@@ -75,6 +79,14 @@ public sealed class StepExecutor
 
             case "ast-insert":
                 await ExecuteAstInsertAsync(step, request, vars, files, ct);
+                break;
+
+            case "js-ast-import":
+                await ExecuteJsAstImportAsync(step, vars, files, ct);
+                break;
+
+            case "js-ast-array-insert":
+                await ExecuteJsAstArrayInsertAsync(step, vars, files, ct);
                 break;
 
             default:
@@ -382,6 +394,150 @@ public sealed class StepExecutor
         {
             _logger.LogError(ex, "Inject failed for '{Step}'", step.Name);
         }
+    }
+
+    private async Task ExecuteJsAstImportAsync(
+        TemplateStep step,
+        VariableContext vars,
+        List<GeneratedFile> files,
+        CancellationToken ct)
+    {
+        if (_jsInjectionService == null)
+        {
+            _logger.LogInformation("Skipping js-ast-import step '{Step}': No JS injection service configured.", step.Name);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(step.File))
+            throw new InvalidOperationException($"Step '{step.Name}' of type 'js-ast-import' must have a 'file'.");
+
+        if (string.IsNullOrWhiteSpace(step.Import))
+            throw new InvalidOperationException($"Step '{step.Name}' of type 'js-ast-import' must have an 'import'.");
+
+        var varDict = vars.AsReadOnly();
+        var filePath = ResolveJsFilePath(_renderer.Render(step.File, varDict), varDict);
+        var importStatement = _renderer.Render(step.Import, varDict);
+
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        {
+            _logger.LogInformation("Skipping js-ast-import '{Step}': Target file not found", step.Name);
+            return;
+        }
+
+        var original = await File.ReadAllTextAsync(filePath, ct);
+        var tempFile = Path.GetTempFileName();
+
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, original, ct);
+            await _jsInjectionService.InjectImportAsync(tempFile, importStatement);
+            var modified = await File.ReadAllTextAsync(tempFile, ct);
+
+            if (!string.Equals(modified, original, StringComparison.Ordinal))
+            {
+                files.Add(new GeneratedFile(filePath, modified, isModification: true));
+                _logger.LogInformation("Injected JS import into {File}", Path.GetFileName(filePath));
+            }
+            else
+            {
+                _logger.LogInformation("Skipped JS import (already present): {File}", Path.GetFileName(filePath));
+            }
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(tempFile);
+            }
+            catch
+            {
+                // ignore cleanup failures
+            }
+        }
+    }
+
+    private async Task ExecuteJsAstArrayInsertAsync(
+        TemplateStep step,
+        VariableContext vars,
+        List<GeneratedFile> files,
+        CancellationToken ct)
+    {
+        if (_jsInjectionService == null)
+        {
+            _logger.LogInformation("Skipping js-ast-array-insert step '{Step}': No JS injection service configured.", step.Name);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(step.File))
+            throw new InvalidOperationException($"Step '{step.Name}' of type 'js-ast-array-insert' must have a 'file'.");
+
+        if (string.IsNullOrWhiteSpace(step.Array))
+            throw new InvalidOperationException($"Step '{step.Name}' of type 'js-ast-array-insert' must have an 'array'.");
+
+        if (string.IsNullOrWhiteSpace(step.Snippet))
+            throw new InvalidOperationException($"Step '{step.Name}' of type 'js-ast-array-insert' must have a 'snippet'.");
+
+        var varDict = vars.AsReadOnly();
+        var filePath = ResolveJsFilePath(_renderer.Render(step.File, varDict), varDict);
+        var arrayName = _renderer.Render(step.Array, varDict);
+        var snippet = _renderer.Render(step.Snippet, varDict);
+
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        {
+            _logger.LogInformation("Skipping js-ast-array-insert '{Step}': Target file not found", step.Name);
+            return;
+        }
+
+        var original = await File.ReadAllTextAsync(filePath, ct);
+        var tempFile = Path.GetTempFileName();
+
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, original, ct);
+            await _jsInjectionService.InjectIntoArrayAsync(tempFile, arrayName, snippet);
+            var modified = await File.ReadAllTextAsync(tempFile, ct);
+
+            if (!string.Equals(modified, original, StringComparison.Ordinal))
+            {
+                files.Add(new GeneratedFile(filePath, modified, isModification: true));
+                _logger.LogInformation("Injected JS snippet into array {Array}", arrayName);
+            }
+            else
+            {
+                _logger.LogInformation("Skipped JS array insertion (already present): {Array}", arrayName);
+            }
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(tempFile);
+            }
+            catch
+            {
+                // ignore cleanup failures
+            }
+        }
+    }
+
+    private static string? ResolveJsFilePath(string renderedPath, IReadOnlyDictionary<string, object> vars)
+    {
+        if (Path.IsPathRooted(renderedPath))
+            return renderedPath;
+
+        if (vars.TryGetValue("_AppRoot", out var appRootObj) && appRootObj is string appRoot && !string.IsNullOrEmpty(appRoot))
+        {
+            var candidate = Path.Combine(appRoot, renderedPath);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        if (vars.TryGetValue("_ProfileRoot", out var profileRootObj) && profileRootObj is string profileRoot && !string.IsNullOrEmpty(profileRoot))
+        {
+            return Path.Combine(profileRoot, renderedPath);
+        }
+
+        return renderedPath;
     }
 
     private InjectionPoint? GetInjectionPointByTarget(string targetName)

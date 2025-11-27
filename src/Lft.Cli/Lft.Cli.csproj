@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Lft.Engine\Lft.Engine.csproj" />
     <ProjectReference Include="..\Lft.App\Lft.App.csproj" />
     <ProjectReference Include="..\Lft.Discovery\Lft.Discovery.csproj" />
+    <ProjectReference Include="..\Lft.Ast.JavaScript\Lft.Ast.JavaScript.csproj" />
     <ProjectReference Include="..\Lft.SqlSchema\Lft.SqlSchema.csproj" />
   </ItemGroup>
 

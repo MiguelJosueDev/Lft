@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lft.Engine\Lft.Engine.csproj" />
     <ProjectReference Include="..\..\src\Lft.Domain\Lft.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Lft.Ast.JavaScript\Lft.Ast.JavaScript.csproj" />
   </ItemGroup>
 
 </Project>

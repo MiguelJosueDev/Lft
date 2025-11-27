@@ -3,6 +3,7 @@ using Lft.App.Pipelines.Steps;
 using Lft.App.Pipelines.Steps.Strategies;
 using Lft.App.Services;
 using Lft.Ast.CSharp;
+using Lft.Ast.JavaScript;
 using Lft.Discovery;
 using Lft.Engine.Discovery;
 using Lft.Domain.Models;
@@ -82,6 +83,7 @@ static ServiceProvider ConfigureServices(string templatesRoot, string? profile)
     services.AddSingleton<ISmartPathResolver>(sp => sp.GetRequiredService<SuffixBasedPathResolver>());
     services.AddSingleton<IPathResolver>(sp => sp.GetRequiredService<SuffixBasedPathResolver>());
     services.AddSingleton<ICodeInjector, CSharpCodeInjector>();
+    services.AddSingleton<IJavaScriptInjectionService, JavaScriptInjectionService>();
     services.AddSingleton<VariableResolver>();
     services.AddSingleton<IVariableProvider, CliVariableProvider>();
     services.AddSingleton<IVariableProvider>(sp =>
@@ -98,6 +100,7 @@ static ServiceProvider ConfigureServices(string templatesRoot, string? profile)
         sp.GetRequiredService<ITemplateRenderer>(),
         sp.GetRequiredService<IPathResolver>(),
         sp.GetRequiredService<ICodeInjector>(),
+        sp.GetRequiredService<IJavaScriptInjectionService>(),
         sp.GetRequiredService<ILogger<StepExecutor>>()));
 
     services.AddSingleton<IProjectAnalyzer, ProjectAnalyzer>();
